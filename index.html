@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapLoad - Download Any Video Instantly</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        background: '#0f0f0f',
+                        surface: 'rgba(255, 255, 255, 0.03)',
+                        surfaceBorder: 'rgba(255, 255, 255, 0.08)',
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f0f0f;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            color: transparent;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+        }
+        .gradient-bg:hover {
+            background: linear-gradient(135deg, #9333ea 0%, #db2777 100%);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f0f0f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .blob {
+            position: absolute;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+<body class="antialiased relative min-h-screen flex flex-col font-sans">
+    <!-- Background Elements -->
+    <div class="blob bg-purple-600/30 w-96 h-96 rounded-full top-0 left-[-10%] animate-pulse-slow"></div>
+    <div class="blob bg-pink-600/20 w-96 h-96 rounded-full bottom-[40%] right-[-10%] animate-pulse-slow font-delay-1000"></div>
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 glass-card border-b-0 border-surfaceBorder bg-background/80 supports-[backdrop-filter]:bg-background/40 max-w-[100vw]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center gap-2 cursor-pointer">
+                    <div class="w-10 h-10 rounded-xl gradient-bg flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
+                        <i class="fa-solid fa-bolt text-xl"></i>
+                    </div>
+                    <span class="text-2xl font-bold tracking-tight">Snap<span class="gradient-text">Load</span></span>
+                </div>
+                <!-- Desktop Menu -->
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-8">
+                        <a href="#" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium transition-colors">Home</a>
+                        <a href="#how-it-works" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium transition-colors">How It Works</a>
+                        <a href="#faq" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium transition-colors">FAQ</a>
+                    </div>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="text-gray-400 hover:text-white focus:outline-none">
+                        <i class="fa-solid fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden px-4 pb-4 bg-background/95 backdrop-blur-xl border-b border-surfaceBorder transition-all duration-300">
+            <div class="flex flex-col space-y-4 pt-2">
+                <a href="#" class="mobile-link text-gray-300 hover:text-white text-lg font-medium transition-colors">Home</a>
+                <a href="#how-it-works" class="mobile-link text-gray-300 hover:text-white text-lg font-medium transition-colors">How It Works</a>
+                <a href="#faq" class="mobile-link text-gray-300 hover:text-white text-lg font-medium transition-colors">FAQ</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow pt-28 pb-12">
+        <!-- Hero Section -->
+        <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-16 pb-12">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card text-sm text-gray-300 mb-8 animate-float">
+                <span class="relative flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-purple-500"></span>
+                </span>
+                Free & Unlimited Video Downloads
+            </div>
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
+                Download Any Video, <br/><span class="gradient-text">Instantly.</span>
+            </h1>
+            <p class="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
+                The fastest way to save high-quality videos from your favorite social media platforms. No watermarks, no registration required.
+            </p>
+
+            <!-- Input Area -->
+            <div class="relative max-w-3xl mx-auto mb-6 group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+                <div class="relative flex flex-col md:flex-row glass-card rounded-2xl p-2 items-center">
+                    <div class="px-4 text-gray-400"><i class="fa-solid fa-link"></i></div>
+                    <input type="text" id="video-url" class="flex-grow bg-transparent border-none text-white px-2 py-4 focus:outline-none placeholder-gray-500 w-full md:text-lg" placeholder="Paste your video link here...">
+                    <button id="download-btn" class="w-full md:w-auto mt-2 md:mt-0 gradient-bg text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:shadow-purple-500/30 transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                        <i class="fa-solid fa-download"></i> Fetch Video
+                    </button>
+                </div>
+            </div>
+
+            <!-- Platform Badges -->
+            <div class="flex flex-wrap justify-center items-center gap-6 text-gray-500 text-sm font-medium mt-8">
+                <div class="flex items-center gap-2 hover:text-white transition-colors cursor-default">
+                    <i class="fa-brands fa-tiktok text-xl"></i> TikTok
+                </div>
+                <div class="flex items-center gap-2 hover:text-white transition-colors cursor-default">
+                    <i class="fa-brands fa-youtube text-xl"></i> YouTube
+                </div>
+                <div class="flex items-center gap-2 hover:text-white transition-colors cursor-default">
+                    <i class="fa-brands fa-instagram text-xl"></i> Instagram
+                </div>
+                <div class="flex items-center gap-2 hover:text-white transition-colors cursor-default">
+                    <i class="fa-brands fa-x-twitter text-xl"></i> X (Twitter)
+                </div>
+            </div>
+        </section>
+
+        <!-- Download Result Area (Hidden by default) -->
+        <section id="result-area" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 hidden">
+            <div class="glass-card rounded-3xl p-6 md:p-8 animate-[fadeIn_0.5s_ease-out]">
+                <div class="flex flex-col md:flex-row gap-8">
+                    <!-- Thumbnail -->
+                    <div class="w-full md:w-1/3 relative group rounded-2xl overflow-hidden shadow-2xl">
+                        <img id="res-thumb" src="" alt="Video Thumbnail" class="w-full h-full object-cover aspect-video md:aspect-[3/4] group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white">
+                                <i class="fa-solid fa-play ml-1"></i>
+                            </div>
+                        </div>
+                        <div id="res-duration" class="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md px-2 py-1 rounded text-xs font-semibold text-white">
+                            00:00
+                        </div>
+                    </div>
+                    
+                    <!-- Info & Downloads -->
+                    <div class="w-full md:w-2/3 flex flex-col pt-2">
+                        <div class="mb-2 flex items-center gap-2">
+                            <span class="px-2 py-1 bg-surface border border-surfaceBorder rounded text-xs text-purple-400 font-medium"><i class="fa-solid fa-video mr-1"></i> Ready to Download</span>
+                        </div>
+                        <h3 id="res-title" class="text-2xl font-bold text-white mb-2 line-clamp-2">Loading...</h3>
+                        <p class="text-gray-400 text-sm mb-6">Enjoy your high-quality download</p>
+                        
+                        <h4 class="text-white font-medium mb-3">Available Formats</h4>
+                        <div id="res-formats" class="space-y-3">
+                            <!-- Injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading State (Hidden) -->
+        <section id="loading-area" class="max-w-md mx-auto px-4 mb-20 hidden text-center">
+            <div class="glass-card rounded-2xl p-8 flex flex-col items-center">
+                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-purple-500 mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">Analyzing Link...</h3>
+                <p class="text-gray-400 text-sm">Fetching available formats and details</p>
+            </div>
+        </section>
+
+        <!-- Platform Cards Section -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-4">Supported Platforms</h2>
+                <p class="text-gray-400">Download from your favorite social media networks seamlessly.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card 1 -->
+                <div class="glass-card rounded-2xl p-6 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-[#00f2fe]/50 group">
+                    <div class="w-14 h-14 rounded-full bg-[#25F4EE]/10 flex items-center justify-center mb-6 max-w-full">
+                         <i class="fa-brands fa-tiktok text-3xl text-white drop-shadow-[0_0_8px_rgba(37,244,238,0.8)]"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-white">TikTok</h3>
+                    <p class="text-gray-400 text-sm">Download TikTok videos in original quality completely without watermarks.</p>
+                </div>
+                <!-- Card 2 -->
+                <div class="glass-card rounded-2xl p-6 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-[#ff0000]/50">
+                    <div class="w-14 h-14 rounded-full bg-[#ff0000]/10 flex items-center justify-center mb-6">
+                         <i class="fa-brands fa-youtube text-3xl text-[#ff0000] drop-shadow-[0_0_8px_rgba(255,0,0,0.8)]"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-white">YouTube</h3>
+                    <p class="text-gray-400 text-sm">Save Shorts & Videos from YouTube in Up to 4K resolution or convert to MP3.</p>
+                </div>
+                <!-- Card 3 -->
+                <div class="glass-card rounded-2xl p-6 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-[#E1306C]/50">
+                    <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-[#fd5949]/20 to-[#d6249f]/20 flex items-center justify-center mb-6">
+                         <i class="fa-brands fa-instagram text-3xl text-transparent bg-clip-text bg-gradient-to-tr from-[#fd5949] to-[#d6249f] drop-shadow-[0_0_8px_rgba(225,48,108,0.5)]"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-white">Instagram</h3>
+                    <p class="text-gray-400 text-sm">Easily fetch IG Reels, Stories, Photos, and IGTV videos directly to your device.</p>
+                </div>
+                <!-- Card 4 -->
+                <div class="glass-card rounded-2xl p-6 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-[#1DA1F2]/50">
+                    <div class="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mb-6">
+                         <i class="fa-brands fa-x-twitter text-3xl text-white"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-white">X (Twitter)</h3>
+                    <p class="text-gray-400 text-sm">Grab high-quality videos and GIFs from X timelines with a single click.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- How it works -->
+        <section id="how-it-works" class="py-20 relative">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold mb-4">How It Works</h2>
+                    <p class="text-gray-400 max-w-2xl mx-auto">Three simple steps to save any video to your device forever.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative text-center">
+                    <!-- Line connecting steps (hidden on mobile) -->
+                    <div class="hidden md:block absolute top-12 left-[15%] right-[15%] h-0.5 bg-gradient-to-r from-purple-500/0 via-purple-500/50 to-pink-500/0 z-0"></div>
+                    
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="w-24 h-24 rounded-2xl glass-card flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+                            <i class="fa-solid fa-copy text-4xl text-purple-400"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-3 text-white">1. Paste Link</h4>
+                        <p class="text-gray-400 text-sm px-4">Copy the video URL from your social app and paste it into our search box above.</p>
+                    </div>
+                    
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="w-24 h-24 rounded-2xl glass-card flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(236,72,153,0.2)]">
+                            <i class="fa-solid fa-sliders text-4xl text-pink-400"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-3 text-white">2. Choose Quality</h4>
+                        <p class="text-gray-400 text-sm px-4">Wait a second for the engine to fetch available formats, then select your desired resolution.</p>
+                    </div>
+
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="w-24 h-24 rounded-2xl glass-card flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+                            <i class="fa-solid fa-circle-down text-4xl text-purple-400"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-3 text-white">3. Download</h4>
+                        <p class="text-gray-400 text-sm px-4">Hit the download button and the file will directly save to your offline gallery.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq" class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- FAQ 1 -->
+                <div class="glass-card rounded-xl p-1">
+                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
+                        <span class="font-semibold text-lg">Are TikTok videos downloaded without a watermark?</span>
+                        <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5 text-gray-400">
+                        Yes! Our downloader completely removes the TikTok watermark, giving you the cleanest possible original video.
+                    </div>
+                </div>
+                <!-- FAQ 2 -->
+                <div class="glass-card rounded-xl p-1">
+                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
+                        <span class="font-semibold text-lg">Is SnapLoad completely free?</span>
+                        <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5 text-gray-400">
+                        Absolutely. SnapLoad is 100% free to use. You can download unlimited videos without any hidden fees or subscriptions.
+                    </div>
+                </div>
+                <!-- FAQ 3 -->
+                <div class="glass-card rounded-xl p-1">
+                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
+                        <span class="font-semibold text-lg">Does it work on iOS and Android?</span>
+                        <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5 text-gray-400">
+                        Yes, our tool is fully web-based. It works seamlessly on Safari on iOS, Chrome on Android, and any modern desktop browser.
+                    </div>
+                </div>
+                <!-- FAQ 4 -->
+                <div class="glass-card rounded-xl p-1">
+                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
+                        <span class="font-semibold text-lg">Do you store my downloaded videos?</span>
+                        <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-300"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5 text-gray-400">
+                        No, we do not store any videos or keep logs of downloaded content. We only act as a passthrough to the source files to ensure your privacy.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-surfaceBorder bg-black/50 py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg gradient-bg flex items-center justify-center text-white text-sm">
+                        <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <span class="text-xl font-bold">Snap<span class="gradient-text">Load</span></span>
+                </div>
+                
+                <p class="text-gray-500 text-sm">
+                    &copy; 2026 SnapLoad. All rights reserved. This tool is for personal use only.
+                </p>
+                
+                <div class="flex gap-4">
+                    <a href="#" class="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-gray-400 hover:text-white hover:bg-surfaceBorder transition-colors">
+                        <i class="fa-brands fa-twitter"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-gray-400 hover:text-white hover:bg-surfaceBorder transition-colors">
+                        <i class="fa-brands fa-github"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-surface flex items-center justify-center text-gray-400 hover:text-white hover:bg-surfaceBorder transition-colors">
+                        <i class="fa-solid fa-envelope"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mobile Menu Logic
+            const mobileBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const mobileLinks = document.querySelectorAll('.mobile-link');
+            
+            mobileBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            mobileLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                });
+            });
+
+            // FAQ Logic
+            const faqBtns = document.querySelectorAll('.faq-btn');
+            faqBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const content = btn.nextElementSibling;
+                    const icon = btn.querySelector('i');
+                    
+                    // Close all others
+                    faqBtns.forEach(otherBtn => {
+                        if (otherBtn !== btn) {
+                            otherBtn.nextElementSibling.classList.add('hidden');
+                            otherBtn.querySelector('i').style.transform = 'rotate(0deg)';
+                        }
+                    });
+
+                    // Toggle current
+                    if (content.classList.contains('hidden')) {
+                        content.classList.remove('hidden');
+                        icon.style.transform = 'rotate(180deg)';
+                    } else {
+                        content.classList.add('hidden');
+                        icon.style.transform = 'rotate(0deg)';
+                    }
+                });
+            });
+
+            // Download Demo Logic
+            const downloadBtn = document.getElementById('download-btn');
+            const urlInput = document.getElementById('video-url');
+            const resultArea = document.getElementById('result-area');
+            const loadingArea = document.getElementById('loading-area');
+
+            downloadBtn.addEventListener('click', async () => {
+                const url = urlInput.value.trim();
+                if (!url) {
+                    // Small shake animation if empty
+                    urlInput.parentElement.classList.add('animate-[bounce_0.2s_ease-in-out_2]');
+                    setTimeout(() => {
+                        urlInput.parentElement.classList.remove('animate-[bounce_0.2s_ease-in-out_2]');
+                    }, 400);
+                    return;
+                }
+
+                // Hide result, show loading
+                resultArea.classList.add('hidden');
+                loadingArea.classList.remove('hidden');
+
+                try {
+                    const response = await fetch('/api/info', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ url })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Failed to fetch video');
+                    }
+
+                    // Populate DOM
+                    document.getElementById('res-thumb').src = data.thumbnail;
+                    document.getElementById('res-duration').textContent = data.duration;
+                    document.getElementById('res-title').textContent = data.title;
+                    
+                    const formatsContainer = document.getElementById('res-formats');
+                    formatsContainer.innerHTML = ''; // Clear old ones
+
+                    const addFormat = (title, desc, icon, color, url, badge) => {
+                        if (!url) return;
+                        
+                        const badgeHtml = badge ? `<span class="ml-2 text-xs py-0.5 px-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white">${badge}</span>` : '';
+                        
+                        const html = `
+                        <div class="flex items-center justify-between glass-card p-4 rounded-xl hover:bg-white/5 transition-colors">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-lg bg-surface flex items-center justify-center text-${color}-400">
+                                    <i class="fa-solid fa-${icon}"></i>
+                                </div>
+                                <div class="w-3/4 max-w-[200px] sm:max-w-xs">
+                                    <p class="font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis">${title} ${badgeHtml}</p>
+                                    <p class="text-xs text-gray-400">${desc}</p>
+                                </div>
+                            </div>
+                            <a href="${url}" target="_blank" download class="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors font-medium text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Save</span>
+                            </a>
+                        </div>
+                        `;
+                        formatsContainer.insertAdjacentHTML('beforeend', html);
+                    };
+
+                    const encodedUrl = encodeURIComponent(data.originalUrl);
+                    addFormat('MP4 Video (HD)', 'Best visual quality', 'video', 'purple', `/api/download?url=${encodedUrl}&type=hd`, 'HD');
+                    addFormat('MP4 Video (SD)', 'Saves bandwidth', 'video', 'blue', `/api/download?url=${encodedUrl}&type=sd`);
+                    addFormat('Audio (MP3/M4A)', 'Audio only track', 'music', 'pink', `/api/download?url=${encodedUrl}&type=audio`);
+
+                    loadingArea.classList.add('hidden');
+                    resultArea.classList.remove('hidden');
+                    resultArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                } catch (error) {
+                    loadingArea.classList.add('hidden');
+                    alert(error.message);
+                }
+            });
+
+            // Optional: trigger on enter key
+            urlInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    downloadBtn.click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
