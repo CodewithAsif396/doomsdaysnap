@@ -58,10 +58,13 @@ app.post('/api/info', async (req, res) => {
             noCheckCertificate: true,
             preferFreeFormats: true,
             noPlaylist: true,
-            forceIpv4: true, // Often helps on cloud platforms
-            extractorArgs: 'youtube:player_client=ios,android,web', // Multimodal bypass
+            forceIpv4: true,
+            // iOS and Web clients currently have fewer 403 blocks than Android on some servers
+            extractorArgs: 'youtube:player_client=ios,web', 
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            referer: 'https://www.youtube.com/',
             ffmpegLocation: ffmpegPath
-        }, { timeout: 18000 }); // Slightly longer timeout for deep extraction
+        }, { timeout: 20000 });
 
         // Parse relevant info
         const title = output.title || 'Unknown Title';
@@ -100,7 +103,17 @@ app.post('/api/info', async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching info:', error.message);
-        return res.status(500).json({ error: 'Failed to extract video information. The video might be private or link is invalid.' });
+        
+        // Return the actual error message to help debugging
+        let userMessage = 'Failed to extract video information.';
+        if (error.message.includes('403')) userMessage = 'Access Forbidden (403). YouTube is currently blocking this request.';
+        if (error.message.includes('Video unavailable')) userMessage = 'This video is unavailable, private, or age-restricted.';
+        if (error.message.includes('Incomplete data')) userMessage = 'The server received incomplete data. Please try again.';
+
+        return res.status(500).json({ 
+            error: userMessage,
+            details: error.message.slice(0, 200) // Send a snippet of the raw error for debugging
+        });
     }
 });
 
