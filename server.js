@@ -19,13 +19,26 @@ app.get('/', (req, res) => {
 
 // Helper to sanitize URLs for shell command execution
 function sanitizeUrl(url) {
-    // Remove YouTube playlist parameter which causes most issues and hangs,
-    // and remove any potential shell injection characters just in case.
-    let cleanUrl = url.split('&list=')[0];
-    
-    // Wrap in double quotes so that shell:true in youtube-dl-exec safely treats it as a single string
-    // on both Windows (cmd) and Linux (bash/sh).
-    return `"${cleanUrl}"`;
+    try {
+        const parsed = new URL(url);
+        // YouTube special handling: Keep only the video ID to prevent playlist/mix issues
+        if (parsed.hostname.includes('youtube.com') || parsed.hostname.includes('youtu.be')) {
+            let videoId = parsed.searchParams.get('v');
+            if (videoId) return `https://www.youtube.com/watch?v=${videoId}`;
+            
+            // Handle youtu.be/VIDEO_ID
+            if (parsed.hostname.includes('youtu.be')) {
+                const pathId = parsed.pathname.slice(1);
+                if (pathId) return `https://www.youtube.com/watch?v=${pathId}`;
+            }
+        }
+    } catch (e) {
+        // Fallback to original if URL parsing fails
+    }
+
+    // Generic cleanup: Remove everything after first & or ? for other platforms
+    // Note: Some platforms need parameters, so we do this carefully.
+    return url.split('&list=')[0].split('&index=')[0];
 }
 
 app.post('/api/info', async (req, res) => {
@@ -45,32 +58,43 @@ app.post('/api/info', async (req, res) => {
             noCheckCertificate: true,
             preferFreeFormats: true,
             noPlaylist: true,
-            extractorArgs: 'youtube:player_client=android', // Bypass YouTube bot protection!
+            forceIpv4: true, // Often helps on cloud platforms
+            extractorArgs: 'youtube:player_client=ios,android,web', // Multimodal bypass
             ffmpegLocation: ffmpegPath
-        }, { timeout: 15000 }); // Prevent backend from freezing indefinitely
+        }, { timeout: 18000 }); // Slightly longer timeout for deep extraction
 
         // Parse relevant info
         const title = output.title || 'Unknown Title';
         const thumbnail = output.thumbnail || 'https://via.placeholder.com/600x400?text=No+Thumbnail';
-        const duration = output.duration_string || output.duration ? new Date(output.duration * 1000).toISOString().substr(14, 5) : '00:00';
+        const duration = output.duration_string || (output.duration ? new Date(output.duration * 1000).toISOString().substr(14, 5) : '00:00');
 
-        // Extract available resolutions dynamically
+        // Extract available resolutions dynamically with file sizes
         const formats = output.formats || [];
-        let availableHeights = [...new Set(
-            formats.filter(f => f.vcodec !== 'none' && f.height).map(f => f.height)
-        )].sort((a, b) => b - a);
+        
+        // Filter for unique heights that have video
+        const uniqueFormats = [];
+        const seenHeights = new Set();
 
-        // Fallback default heights if the platform doesn't report height cleanly
-        if (availableHeights.length === 0) {
-            availableHeights = [1080, 720, 360];
-        }
+        formats.filter(f => f.vcodec !== 'none' && f.height).forEach(f => {
+            if (!seenHeights.has(f.height)) {
+                seenHeights.add(f.height);
+                uniqueFormats.push({
+                    height: f.height,
+                    ext: f.ext || 'mp4',
+                    size: f.filesize || f.filesize_approx || null
+                });
+            }
+        });
+
+        // Sort by height descending
+        uniqueFormats.sort((a, b) => b.height - a.height);
 
         // We return the raw URL back so the frontend can send it to our /api/download endpoint
         return res.json({
             title,
             thumbnail,
             duration,
-            availableHeights,
+            formats: uniqueFormats,
             originalUrl: url
         });
 
@@ -116,7 +140,8 @@ app.get('/api/download', (req, res) => {
         noWarnings: true,
         noCheckCertificate: true,
         noPlaylist: true,
-        extractorArgs: 'youtube:player_client=android', // Bypass YouTube bot protection!
+        forceIpv4: true,
+        extractorArgs: 'youtube:player_client=ios,android,web', // Multimodal bypass
         ffmpegLocation: ffmpegPath,
         extractAudio: type === 'audio',
         audioFormat: type === 'audio' ? 'mp3' : undefined,

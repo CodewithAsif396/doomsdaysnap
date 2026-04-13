@@ -209,12 +209,38 @@
             </div>
         </section>
 
-        <!-- Loading State (Hidden) -->
-        <section id="loading-area" class="max-w-md mx-auto px-4 mb-20 hidden text-center">
-            <div class="glass-card rounded-2xl p-8 flex flex-col items-center">
-                <i class="fa-solid fa-circle-notch fa-spin text-4xl text-purple-500 mb-4"></i>
-                <h3 class="text-xl font-bold mb-2">Analyzing Link...</h3>
-                <p class="text-gray-400 text-sm">Fetching available formats and details</p>
+        <!-- Loading State (Detailed HUD) -->
+        <section id="loading-area" class="max-w-xl mx-auto px-4 mb-20 hidden text-center">
+            <div class="glass-card rounded-3xl p-8 md:p-12 relative overflow-hidden">
+                <!-- Progress Line Background -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-white/5">
+                    <div id="loader-progress" class="h-full bg-gradient-to-r from-purple-500 to-pink-500 w-0 transition-all duration-300"></div>
+                </div>
+                
+                <div class="mb-8 relative">
+                    <div class="w-20 h-20 rounded-2xl bg-purple-500/10 flex items-center justify-center mx-auto animate-pulse">
+                        <i class="fa-solid fa-cloud-bolt text-3xl text-purple-500"></i>
+                    </div>
+                </div>
+                
+                <h3 id="loader-status" class="text-2xl font-bold mb-4 gradient-text">Initializing Engine...</h3>
+                
+                <div class="space-y-4 max-w-sm mx-auto">
+                    <div id="step-1" class="flex items-center gap-3 text-gray-500 transition-colors duration-500">
+                        <div class="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px]">1</div>
+                        <span class="text-sm font-medium">Bypassing platform restrictions</span>
+                    </div>
+                    <div id="step-2" class="flex items-center gap-3 text-gray-500 transition-colors duration-500">
+                        <div class="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px]">2</div>
+                        <span class="text-sm font-medium">Extracting high-quality metadata</span>
+                    </div>
+                    <div id="step-3" class="flex items-center gap-3 text-gray-500 transition-colors duration-500">
+                        <div class="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px]">3</div>
+                        <span class="text-sm font-medium">Optimizing download mirrors</span>
+                    </div>
+                </div>
+                
+                <p class="mt-8 text-xs text-gray-500 uppercase tracking-widest font-semibold">Security Level: High-Speed Proxy Enabled</p>
             </div>
         </section>
 
@@ -446,20 +472,51 @@
                 resultArea.classList.add('hidden');
                 loadingArea.classList.remove('hidden');
 
+                // HUD Control Function
+                const updateHUD = (step, text, progress) => {
+                    document.getElementById('loader-status').textContent = text;
+                    document.getElementById('loader-progress').style.width = `${progress}%`;
+                    if (step > 0) {
+                        const stepEl = document.getElementById(`step-${step}`);
+                        stepEl.classList.remove('text-gray-500');
+                        stepEl.classList.add('text-purple-400');
+                        stepEl.querySelector('div').classList.add('bg-purple-500/20', 'border-purple-500/50');
+                    }
+                };
+
+                // Helper to wait
+                const sleep = ms => new Promise(r => setTimeout(r, ms));
+
                 try {
-                    const response = await fetch('/api/info', {
+                    // Start simulated UI progress
+                    updateHUD(0, "Connecting to Proxy...", 5);
+                    
+                    // Actual API Call (starts in background)
+                    const apiPromise = fetch('/api/info', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ url })
                     });
 
+                    // Step 1: Simulated Wait
+                    await sleep(1500);
+                    updateHUD(1, "Bypassing Security...", 30);
+                    
+                    // Step 2: Simulated Wait
+                    await sleep(2500);
+                    updateHUD(2, "Extracting Media...", 60);
+
+                    const response = await apiPromise;
                     const data = await response.json();
 
-                    if (!response.ok) {
-                        throw new Error(data.error || 'Failed to fetch video');
-                    }
+                    if (!response.ok) throw new Error(data.error || 'Failed to fetch video');
+
+                    // Step 3: Final Processing
+                    await sleep(2500);
+                    updateHUD(3, "Finalizing Resolutions...", 90);
+                    await sleep(1500);
+                    updateHUD(3, "Success!", 100);
+                    await sleep(500);
 
                     // Populate DOM
                     document.getElementById('res-thumb').src = data.thumbnail;
@@ -471,22 +528,21 @@
 
                     const addFormat = (title, desc, icon, color, url, badge) => {
                         if (!url) return;
-                        
-                        const badgeHtml = badge ? `<span class="ml-2 text-xs py-0.5 px-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white">${badge}</span>` : '';
+                        const badgeHtml = badge ? `<span class="ml-2 text-[10px] py-0.5 px-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold tracking-tight">${badge}</span>` : '';
                         
                         const html = `
-                        <div class="flex items-center justify-between glass-card p-4 rounded-xl hover:bg-white/5 transition-colors">
+                        <div class="flex items-center justify-between glass-card p-4 rounded-2xl hover:bg-white/5 transition-all group/item hover:border-purple-500/30">
                             <div class="flex items-center gap-4">
-                                <div class="w-10 h-10 rounded-lg bg-surface flex items-center justify-center text-${color}-400">
-                                    <i class="fa-solid fa-${icon}"></i>
+                                <div class="w-12 h-12 rounded-xl bg-surface flex items-center justify-center text-${color}-400 shadow-inner group-hover/item:scale-110 transition-transform">
+                                    <i class="fa-solid fa-${icon} text-lg"></i>
                                 </div>
-                                <div class="w-3/4 max-w-[200px] sm:max-w-xs">
-                                    <p class="font-semibold text-white whitespace-nowrap overflow-hidden text-ellipsis">${title} ${badgeHtml}</p>
-                                    <p class="text-xs text-gray-400">${desc}</p>
+                                <div>
+                                    <p class="font-bold text-white flex items-center">${title} ${badgeHtml}</p>
+                                    <p class="text-[11px] text-gray-500 uppercase tracking-wider font-semibold group-hover/item:text-gray-300 transition-colors">${desc}</p>
                                 </div>
                             </div>
-                            <a href="${url}" target="_blank" download class="bg-white/10 hover:bg-white/20 text-white p-3 rounded-xl transition-colors font-medium text-sm flex items-center gap-2">
-                                <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Save</span>
+                            <a href="${url}" target="_blank" download class="gradient-bg text-white px-5 py-2.5 rounded-xl transition-all font-bold text-sm flex items-center gap-2 shadow-lg shadow-purple-500/0 hover:shadow-purple-500/20 active:scale-95">
+                                <i class="fa-solid fa-arrow-down-long"></i> <span>Download</span>
                             </a>
                         </div>
                         `;
@@ -496,39 +552,36 @@
                     const encodedUrl = encodeURIComponent(data.originalUrl);
                     
                     // Render dynamic video formats based on available heights
-                    if (data.availableHeights && data.availableHeights.length > 0) {
-                        data.availableHeights.forEach((height, index) => {
+                    if (data.formats && data.formats.length > 0) {
+                        data.formats.forEach((f) => {
                             let color = 'blue';
                             let badge = '';
-                            let title = `MP4 Video (${height}p)`;
-                            let desc = 'Standard quality video';
+                            let title = `${f.height}p Video`;
+                            
+                            // Format file size
+                            let sizeStr = f.size ? `${(f.size / (1024 * 1024)).toFixed(1)} MB` : 'Quality HD';
+                            let desc = `Format: ${f.ext.toUpperCase()} • ${sizeStr}`;
 
-                            if (height >= 1080) {
+                            if (f.height >= 1440) {
                                 color = 'purple';
-                                badge = height >= 1440 ? '4K/2K' : 'FHD';
-                                desc = 'Ultra High Definition';
-                            } else if (height >= 720) {
+                                badge = '4K/2K';
+                            } else if (f.height >= 1080) {
+                                color = 'purple';
+                                badge = 'FHD';
+                            } else if (f.height >= 720) {
                                 color = 'indigo';
                                 badge = 'HD';
-                                desc = 'High Definition video';
-                            } else if (height <= 360) {
-                                color = 'gray';
-                                desc = 'Saves data bandwidth';
                             }
 
-                            // If it's the absolute highest resolution available, highlight it slightly differently if we want,
-                            // but our color coding handles it.
-
-                            addFormat(title, desc, 'video', color, `/api/download?url=${encodedUrl}&type=${height}`, badge);
+                            addFormat(title, desc, 'video', color, `/api/download?url=${encodedUrl}&type=${f.height}`, badge);
                         });
                     } else {
                         // Fallback just in case
-                        addFormat('MP4 Video (HD)', 'Best visual quality', 'video', 'purple', `/api/download?url=${encodedUrl}&type=1080`, 'HD');
-                        addFormat('MP4 Video (SD)', 'Saves bandwidth', 'video', 'blue', `/api/download?url=${encodedUrl}&type=720`);
+                        addFormat('HD Video', 'Best available quality', 'video', 'purple', `/api/download?url=${encodedUrl}&type=1080`, 'HD');
                     }
 
                     // Always add the Audio format
-                    addFormat('Audio (MP3)', 'Audio only track', 'music', 'pink', `/api/download?url=${encodedUrl}&type=audio`);
+                    addFormat('Audio MP3', 'High bitrate audio only', 'music', 'pink', `/api/download?url=${encodedUrl}&type=audio`);
 
                     loadingArea.classList.add('hidden');
                     resultArea.classList.remove('hidden');
@@ -536,6 +589,12 @@
 
                 } catch (error) {
                     loadingArea.classList.add('hidden');
+                    // Reset steps for next time
+                    [1,2,3].forEach(s => {
+                        const el = document.getElementById(`step-${s}`);
+                        el.classList.add('text-gray-500');
+                        el.classList.remove('text-purple-400');
+                    });
                     alert(error.message);
                 }
             });
