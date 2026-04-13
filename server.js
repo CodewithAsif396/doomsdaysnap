@@ -17,14 +17,15 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Helper to sanitize URLs for Windows CMD to prevent & breaking the command
-// It's safer to just split by & and take the first part for most video urls,
-// but for flexibility, we will wrap in quotes.
+// Helper to sanitize URLs for shell command execution
 function sanitizeUrl(url) {
-    if (process.platform === 'win32') {
-        return `"${url}"`;
-    }
-    return url;
+    // Remove YouTube playlist parameter which causes most issues and hangs,
+    // and remove any potential shell injection characters just in case.
+    let cleanUrl = url.split('&list=')[0];
+    
+    // Wrap in double quotes so that shell:true in youtube-dl-exec safely treats it as a single string
+    // on both Windows (cmd) and Linux (bash/sh).
+    return `"${cleanUrl}"`;
 }
 
 app.post('/api/info', async (req, res) => {
