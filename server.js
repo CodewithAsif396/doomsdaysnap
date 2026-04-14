@@ -103,6 +103,7 @@ function getDirectUrls(safeUrl, format) {
         const args = [
             safeUrl, '-f', format,
             '--no-warnings', '--no-check-certificate', '--no-playlist',
+            '--force-ipv4', '--geo-bypass',
             '--extractor-args', 'youtube:player_client=tv_embedded,ios,mweb',
             '--get-url',
         ];

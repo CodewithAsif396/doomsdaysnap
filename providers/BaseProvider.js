@@ -16,6 +16,8 @@ class BaseProvider {
             noWarnings:         true,
             noCheckCertificate: true,
             noPlaylist:         true,
+            forceIpv4:          true,
+            geoBypass:          true,
             ffmpegLocation:     ffmpegPath,
         };
 
