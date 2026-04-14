@@ -193,9 +193,10 @@ app.post('/api/info', rateLimit, async (req, res) => {
         const m = err.message || '';
         if (m.includes('Private video'))                          msg = 'This video is private.';
         else if (m.includes('age'))                               msg = 'Age-restricted content cannot be downloaded.';
-        else if (m.includes('not available'))                     msg = 'This video is not available in your region.';
+        else if (m.includes('Sign in to confirm'))                msg = 'YouTube has blocked this request (Bot detection). Try again later.';
+        else if (m.includes('not available in your country') || m.includes('blocked in your country')) msg = 'This video is not available in your region.';
         else if (m.includes('HTTP Error 404'))                    msg = 'Video not found — please check the URL.';
-        else if (m.includes('is not a valid URL'))                msg = 'Invalid URL. Please copy the link directly.';
+        else if (m.includes('is not a valid URL') || m.includes('truncated')) msg = 'Invalid URL. Please copy the complete link directly.';
         else if (m.includes('No video') && m.includes('tweet'))  msg = 'X/Twitter now requires login to download videos. This tweet may have no video or be private.';
         return res.status(500).json({ error: msg, details: m.slice(0, 300) });
     }

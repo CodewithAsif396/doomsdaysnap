@@ -17,11 +17,8 @@ class BaseProvider {
             noWarnings:         true,
             noCheckCertificate: true,
             noPlaylist:         true,
-            // ffmpegPath and userAgent contain spaces — must be quoted.
-            // All other args (extractorArgs, addHeader) must NOT be quoted,
-            // as youtube-dl-exec passes them directly and extra quotes break them.
-            ffmpegLocation:     quoteArg(ffmpegPath),
-            userAgent:          quoteArg(this.userAgent),
+            ffmpegLocation:     ffmpegPath,
+            userAgent:          this.userAgent,
         };
 
         return await youtubedl(url, { ...defaultArgs, ...extraArgs }, { timeout: 45000 });
