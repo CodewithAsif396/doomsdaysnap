@@ -2,9 +2,7 @@ const BaseProvider = require('./BaseProvider');
 
 class YouTubeProvider extends BaseProvider {
     async getInfo(url) {
-        const output = await this.executeYtdlp(url, {
-            extractorArgs: 'youtube:player_client=ios,web',
-        });
+        const output = await this.executeYtdlp(url, {});
 
         const formats = output.formats || [];
 
