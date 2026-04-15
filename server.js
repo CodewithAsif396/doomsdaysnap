@@ -18,10 +18,10 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 const isWin = process.platform === 'win32';
-const YTDLP = path.join(
-    __dirname, 'node_modules', 'youtube-dl-exec', 'bin',
-    isWin ? 'yt-dlp.exe' : 'yt-dlp'
-);
+const YTDLP = isWin
+    ? path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe')
+    : (require('fs').existsSync('/usr/local/bin/yt-dlp') ? '/usr/local/bin/yt-dlp'
+    : path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp'));
 
 // Cookies file for bypassing YouTube bot detection
 const COOKIES_FILE = path.join(__dirname, 'cookies.txt');
@@ -238,14 +238,18 @@ app.post('/api/info', rateLimit, async (req, res) => {
     }
 });
 
-// Platform-specific extra args for download (modernized fallback)
-const YT_ARGS = [];
+// Platform-specific extra args for download
+const YT_ARGS = [
+    '--extractor-args', 'youtube:player_client=android,web',
+    '--add-header', 'User-Agent:Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36',
+];
 const TIKTOK_ARGS = [
     '--add-header', 'referer:https://www.tiktok.com/',
     '--add-header', 'origin:https://www.tiktok.com',
     '--add-header', 'user-agent:Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-    '--extractor-args', 'tiktok:api_hostname=api22-normal-c-useast2a.tiktokv.com',
+    '--extractor-args', 'tiktok:api_hostname=api22-normal-c-useast2a.tiktokv.com;app_version=33.4.3;manifest_app_version=2023304030',
     '--no-check-formats',
+    '--geo-bypass-country', 'US',
 ];
 const INSTAGRAM_ARGS = [
     '--add-header', 'referer:https://www.instagram.com/',
