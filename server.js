@@ -346,16 +346,23 @@ app.get('/api/download', rateLimit, async (req, res) => {
             });
 
             if (tikwmData) {
-                const cdnUrl = type === 'audio'
-                    ? (tikwmData.music || tikwmData.hdplay || tikwmData.play)
-                    : (tikwmData.hdplay || tikwmData.play);
+                console.log(`[DOWNLOAD] TikTok tikwm fields: hdplay=${!!tikwmData.hdplay} play=${!!tikwmData.play} music=${!!tikwmData.music}`);
+                let cdnUrl;
+                if (type === 'audio') {
+                    cdnUrl = tikwmData.music || tikwmData.hdplay || tikwmData.play;
+                    res.setHeader('Content-Type', 'audio/mpeg');
+                    res.setHeader('Content-Disposition', `attachment; filename="doomsdaysnap_${Date.now()}.mp3"`);
+                } else {
+                    // Always prefer hdplay (HD no-watermark), fallback to play
+                    cdnUrl = tikwmData.hdplay || tikwmData.play;
+                    res.setHeader('Content-Type', 'video/mp4');
+                    res.setHeader('Content-Disposition', `attachment; filename="doomsdaysnap_${Date.now()}.mp4"`);
+                }
                 if (cdnUrl) {
-                    console.log(`[DOWNLOAD] TikTok → tikwm CDN`);
-                    if (type === 'audio') {
-                        res.setHeader('Content-Type', 'audio/mpeg');
-                        res.setHeader('Content-Disposition', `attachment; filename="doomsdaysnap_${Date.now()}.mp3"`);
-                    }
-                    return pipeCdnUrl(cdnUrl, res, req);
+                    console.log(`[DOWNLOAD] TikTok → tikwm CDN (${type})`);
+                    return pipeCdnUrl(cdnUrl, res, req, {
+                        'Referer': 'https://www.tiktok.com/',
+                    });
                 }
             }
             // Fallback to yt-dlp
