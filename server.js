@@ -47,13 +47,20 @@ function getYTdlpPath() {
 const YTDLP = getYTdlpPath();
 
 // Cookies file detection (must be netscape format)
-const COOKIES_FILE = path.join(__dirname, 'cookies.txt');
-const COOKIES_ARGS = require('fs').existsSync(COOKIES_FILE)
+const fs = require('fs');
+const COOKIES_FILE        = path.join(__dirname, 'cookies.txt');   // YouTube
+const TIKTOK_COOKIES_FILE = path.join(__dirname, 'cookiess.txt');  // TikTok
+
+const COOKIES_ARGS        = fs.existsSync(COOKIES_FILE)
     ? ['--cookies', COOKIES_FILE]
     : [];
+const TIKTOK_COOKIES_ARGS = fs.existsSync(TIKTOK_COOKIES_FILE)
+    ? ['--cookies', TIKTOK_COOKIES_FILE]
+    : COOKIES_ARGS; // fallback to main cookies.txt if no dedicated TikTok file
 
 console.log('[Config] Using YTDLP:', YTDLP);
-if (COOKIES_ARGS.length) console.log('[Config] Using COOKIES_FILE:', COOKIES_FILE);
+if (COOKIES_ARGS.length)        console.log('[Config] YouTube cookies:', COOKIES_FILE);
+if (TIKTOK_COOKIES_ARGS.length) console.log('[Config] TikTok  cookies:', TIKTOK_COOKIES_FILE);
 
 
 app.use(cors());
@@ -203,13 +210,13 @@ function pipeCdnUrl(cdnUrl, res, req, extraHeaders = {}, maxRedirects = 8) {
 }
 
 // ─── Merge video+audio via yt-dlp+ffmpeg streaming ───────────────────────────
-function spawnMergeStream(safeUrl, format, res, req, extraArgs = []) {
+function spawnMergeStream(safeUrl, format, res, req, extraArgs = [], cookiesArgs = COOKIES_ARGS) {
     const args = [
         safeUrl,
         '-f', format,
         '--no-warnings', '--no-check-certificate', '--no-playlist',
         '--ffmpeg-location', ffmpegPath,
-        ...COOKIES_ARGS,
+        ...cookiesArgs,
         ...extraArgs,
         '-o', '-',
     ];
@@ -461,12 +468,18 @@ app.get('/api/download', rateLimit, async (req, res) => {
                 }
             }
 
-            // Step 1: yt-dlp — gets original quality (htdefbr format, ~71MB)
-            // Must run BEFORE tikwm: tikwm pipes compressed 9MB and exits successfully,
-            // which would prevent yt-dlp from ever running.
+            // Step 1: yt-dlp with TikTok-specific cookies (cookiess.txt)
+            // With valid TikTok session cookie → htdefbr format (~71MB original quality)
+            // Without cookie (datacenter IP)  → bytevc1_1080p (~9MB, best available)
             if (!res.headersSent) {
-                console.log(`[DOWNLOAD] TikTok → yt-dlp (original quality)`);
-                spawnMergeStream(safeUrl, 'best', res, req, TIKTOK_ARGS);
+                console.log(`[DOWNLOAD] TikTok → yt-dlp tiktok-cookies=${TIKTOK_COOKIES_ARGS.length > 0}`);
+                spawnMergeStream(
+                    safeUrl,
+                    'best[height>=1920]/best[height>=1280]/best[height>=1024]/best',
+                    res, req,
+                    TIKTOK_ARGS,
+                    TIKTOK_COOKIES_ARGS
+                );
             }
         } else if (isInstagram) {
             console.log(`[DOWNLOAD] Instagram → yt-dlp stream`);
