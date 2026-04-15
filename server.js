@@ -286,6 +286,7 @@ const TWITTER_ARGS = [
     '--add-header', 'referer:https://x.com/',
     '--add-header', 'origin:https://x.com',
     '--extractor-args', 'twitter:api=syndication',
+    '--merge-output-format', 'mp4',
 ];
 
 // Download — smart routing:
@@ -342,7 +343,8 @@ app.get('/api/download', rateLimit, async (req, res) => {
             spawnMergeStream(safeUrl, format, res, req, INSTAGRAM_ARGS);
         } else if (isTwitter) {
             console.log(`[DOWNLOAD] Twitter/X → yt-dlp stream`);
-            spawnMergeStream(safeUrl, format, res, req, TWITTER_ARGS);
+            const twitterFormat = 'bestvideo+bestaudio/best';
+            spawnMergeStream(safeUrl, twitterFormat, res, req, TWITTER_ARGS);
         } else {
             console.log(`[DOWNLOAD] generic → yt-dlp stream`);
             spawnMergeStream(safeUrl, format, res, req);
