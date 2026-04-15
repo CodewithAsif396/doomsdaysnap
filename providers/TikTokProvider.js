@@ -1,99 +1,62 @@
 const BaseProvider = require('./BaseProvider');
 const https        = require('https');
 
-// Base headers for TikTok API/CDN requests
-const TIKTOK_HEADERS = {
-    'User-Agent': 'Mozilla/5.0',
-    'Referer':    'https://www.tiktok.com/',
-};
-
-function fetchJson(url, headers = {}) {
-    return new Promise((resolve) => {
-        https.get(url, { headers: { ...TIKTOK_HEADERS, ...headers } }, (res) => {
-            let d = '';
-            res.on('data', c => d += c);
-            res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
-        }).on('error', () => resolve(null));
-    });
-}
-
 function extractVideoId(url) {
     const m = url.match(/video\/(\d+)/);
     return m ? m[1] : null;
 }
 
-// ─── Method A: TikTok webpage scrape ─────────────────────────────────────────
-// TikTok server-renders full video data in __UNIVERSAL_DATA_FOR_REHYDRATION__
-// including bitrateInfo with genuine HD CDN URLs — no auth required for public videos
-function tiktokWebScrape(url, redirects = 5) {
+// ─── Method A: TikTok web item-detail API + tt_chain_token ───────────────────
+// /api/item/detail/ returns bitrateInfo with genuine HD URLs AND sets
+// tt_chain_token in Set-Cookie — that token is the CDN pass for original quality.
+// Without tt_chain_token the CDN silently serves the compressed stream.
+function tiktokItemDetailFetch(videoId) {
     return new Promise((resolve) => {
+        const qs = [
+            `itemId=${videoId}`, 'aid=1988', 'app_language=en', 'app_name=tiktok_web',
+            'browser_language=en-US', 'browser_name=Mozilla', 'browser_platform=Win32',
+            'browser_version=5.0', 'channel=tiktok_web', 'device_platform=web_pc',
+            'focus_state=true', 'from_page=video', 'history_len=2',
+            'is_fullscreen=false', 'is_page_visible=true',
+            'language=en', 'os=windows', 'region=US',
+            'screen_height=1080', 'screen_width=1920', 'tz_name=America%2FNew_York',
+        ].join('&');
+
         const headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'identity',
             'Referer': 'https://www.tiktok.com/',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'max-age=0',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
         };
         if (process.env.TIKTOK_COOKIE) headers['Cookie'] = process.env.TIKTOK_COOKIE;
 
-        const req = https.get(url, { headers }, (res) => {
-            // Follow redirects (short URLs like vm.tiktok.com)
-            if ([301, 302, 307, 308].includes(res.statusCode) && res.headers.location && redirects > 0) {
-                res.resume();
-                const next = res.headers.location.startsWith('http')
-                    ? res.headers.location
-                    : `https://www.tiktok.com${res.headers.location}`;
-                return tiktokWebScrape(next, redirects - 1).then(resolve);
+        const req = https.get(`https://www.tiktok.com/api/item/detail/?${qs}`, { headers }, (res) => {
+            // Capture tt_chain_token — this is the CDN access key for HD quality
+            let ttToken = null;
+            for (const c of (res.headers['set-cookie'] || [])) {
+                const m = c.match(/tt_chain_token=([^;]+)/);
+                if (m) { ttToken = m[1]; break; }
             }
 
-            const chunks = [];
-            res.on('data', c => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+            let d = '';
+            res.on('data', c => d += c);
             res.on('end', () => {
                 try {
-                    const html = Buffer.concat(chunks).toString('utf8');
-
-                    // Primary: __UNIVERSAL_DATA_FOR_REHYDRATION__ (current TikTok web)
-                    const marker = '<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"';
-                    const si = html.indexOf(marker);
-                    if (si !== -1) {
-                        const ci = html.indexOf('>', si) + 1;
-                        const ce = html.indexOf('</script>', ci);
-                        if (ce !== -1) {
-                            const data = JSON.parse(html.slice(ci, ce));
-                            const item = data?.__DEFAULT_SCOPE__?.['webapp.video-detail']?.itemInfo?.itemStruct;
-                            if (item?.video) return resolve(item);
-                        }
-                    }
-
-                    // Fallback: SIGI_STATE (older TikTok web versions)
-                    const sigiMarker = '<script id="SIGI_STATE"';
-                    const ssi = html.indexOf(sigiMarker);
-                    if (ssi !== -1) {
-                        const sci = html.indexOf('>', ssi) + 1;
-                        const sce = html.indexOf('</script>', sci);
-                        if (sce !== -1) {
-                            const data = JSON.parse(html.slice(sci, sce));
-                            const items = data?.ItemModule;
-                            if (items) {
-                                const first = Object.values(items)[0];
-                                if (first?.video) return resolve(first);
-                            }
-                        }
-                    }
-
-                    resolve(null);
-                } catch { resolve(null); }
+                    const json = JSON.parse(d);
+                    resolve({ item: json?.itemInfo?.itemStruct || null, ttToken });
+                } catch { resolve({ item: null, ttToken }); }
             });
         });
-        req.on('error', () => resolve(null));
-        setTimeout(() => { req.destroy(); resolve(null); }, 12000);
+        req.on('error', () => resolve({ item: null, ttToken: null }));
+        setTimeout(() => { req.destroy(); resolve({ item: null, ttToken: null }); }, 12000);
     });
 }
 
-// Pick best quality from bitrateInfo (web page — PascalCase keys)
-// Sort by resolution in GearName, then by actual Bitrate value
+// Pick highest-quality entry from bitrateInfo (web API — PascalCase keys)
+// Sort by resolution number in GearName, tiebreak by actual Bitrate value
 function pickBestBitrateInfo(bitrateInfo) {
     if (!Array.isArray(bitrateInfo) || bitrateInfo.length === 0) return null;
     const gearRes = (name = '') => { const m = name.match(/(\d{3,4})/); return m ? parseInt(m[1]) : 0; };
@@ -104,12 +67,15 @@ function pickBestBitrateInfo(bitrateInfo) {
 }
 
 // ─── Method B: TikTok internal aweme API ─────────────────────────────────────
-async function tiktokApiFetch(videoId) {
-    const apiUrl = `https://api22-normal-c-useast2a.tiktokv.com/aweme/v1/feed/?aweme_id=${videoId}&aid=1233&app_name=musical_ly&version_code=26.1.3&device_type=Pixel+4&os=android`;
-    const headers = { ...TIKTOK_HEADERS };
-    if (process.env.TIKTOK_COOKIE) headers['Cookie'] = process.env.TIKTOK_COOKIE;
+function tiktokApiFetch(videoId) {
     return new Promise((resolve) => {
-        https.get(apiUrl, { headers }, (res) => {
+        const url = `https://api22-normal-c-useast2a.tiktokv.com/aweme/v1/feed/?aweme_id=${videoId}&aid=1233&app_name=musical_ly&version_code=26.1.3&device_type=Pixel+4&os=android`;
+        const headers = {
+            'User-Agent': 'Mozilla/5.0',
+            'Referer':    'https://www.tiktok.com/',
+        };
+        if (process.env.TIKTOK_COOKIE) headers['Cookie'] = process.env.TIKTOK_COOKIE;
+        https.get(url, { headers }, (res) => {
             let d = '';
             res.on('data', c => d += c);
             res.on('end', () => {
@@ -122,7 +88,6 @@ async function tiktokApiFetch(videoId) {
     });
 }
 
-// Pick best quality from bit_rate (API — snake_case keys)
 function pickBestBitRate(bitRates) {
     if (!Array.isArray(bitRates) || bitRates.length === 0) return null;
     const gearRes = (name = '') => { const m = name.match(/(\d{3,4})/); return m ? parseInt(m[1]) : 0; };
@@ -132,7 +97,17 @@ function pickBestBitRate(bitRates) {
     })[0];
 }
 
-// ─── Method C: tikwm.com API ──────────────────────────────────────────────────
+// ─── Method C: tikwm.com ──────────────────────────────────────────────────────
+function fetchJson(url, headers = {}) {
+    return new Promise((resolve) => {
+        https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.tiktok.com/', ...headers } }, (res) => {
+            let d = '';
+            res.on('data', c => d += c);
+            res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
+        }).on('error', () => resolve(null));
+    });
+}
+
 async function tikwmFetch(url) {
     const json = await fetchJson(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`);
     if (json?.code === 0 && json.data) return json.data;
@@ -151,51 +126,53 @@ async function snaptikFetch(url) {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 class TikTokProvider extends BaseProvider {
     async getInfo(url) {
-        // A: Web page scrape — bitrateInfo has genuine HD URLs, no auth needed
-        const webItem = await tiktokWebScrape(url);
-        if (webItem?.video) {
-            const video = webItem.video;
-            const w = video.width  || 576;
-            const h = video.height || 1024;
-            const res = `${w}×${h}`;
-            const formats = [];
+        const videoId = extractVideoId(url);
 
-            const best = pickBestBitrateInfo(video.bitrateInfo);
-            if (best) {
-                const bh = parseInt(best.GearName?.match(/(\d{3,4})/)?.[1]) || h;
-                formats.push({
-                    height: bh,
-                    ext:    'mp4',
-                    size:   best.PlayAddr?.DataSize || null,
-                    label:  `${best.GearName} · ${res}`,
-                });
-            } else if (video.playAddr || video.downloadAddr) {
-                formats.push({ height: h, ext: 'mp4', size: null, label: `HD · ${res}` });
-            }
+        // A: item/detail API — bitrateInfo with HD URLs
+        if (videoId) {
+            const { item } = await tiktokItemDetailFetch(videoId);
+            if (item?.video) {
+                const video = item.video;
+                const w = video.width  || 576;
+                const h = video.height || 1024;
+                const res = `${w}×${h}`;
+                const formats = [];
 
-            if (formats.length > 0) {
-                const dur = video.duration || 0;
-                const mm  = String(Math.floor(dur / 60));
-                const ss  = String(dur % 60).padStart(2, '0');
-                return {
-                    title:     webItem.desc                  || 'TikTok Video',
-                    thumbnail: video.cover                   || '',
-                    duration:  `${mm}:${ss}`,
-                    formats,
-                    provider:  'tiktok',
-                };
+                const best = pickBestBitrateInfo(video.bitrateInfo);
+                if (best) {
+                    const bh = parseInt(best.GearName?.match(/(\d{3,4})/)?.[1]) || h;
+                    formats.push({
+                        height: bh,
+                        ext:    'mp4',
+                        size:   best.PlayAddr?.DataSize || null,
+                        label:  `${best.GearName} · ${res}`,
+                    });
+                } else if (video.downloadAddr || video.playAddr) {
+                    formats.push({ height: h, ext: 'mp4', size: null, label: `HD · ${res}` });
+                }
+
+                if (formats.length > 0) {
+                    const dur = video.duration || 0; // seconds in web API
+                    const mm  = String(Math.floor(dur / 60));
+                    const ss  = String(dur % 60).padStart(2, '0');
+                    return {
+                        title:     item.desc  || 'TikTok Video',
+                        thumbnail: video.cover || '',
+                        duration:  `${mm}:${ss}`,
+                        formats,
+                        provider:  'tiktok',
+                    };
+                }
             }
         }
 
-        // B: Internal aweme API
-        const videoId = extractVideoId(url);
+        // B: aweme internal API — bit_rate array
         if (videoId) {
             const aweme = await tiktokApiFetch(videoId);
             if (aweme?.video) {
                 const video = aweme.video;
                 const w = video.width  || 576;
                 const h = video.height || 1024;
-                const res = `${w}×${h}`;
                 const formats = [];
 
                 const best = pickBestBitRate(video.bit_rate);
@@ -205,10 +182,10 @@ class TikTokProvider extends BaseProvider {
                         height: bh,
                         ext:    'mp4',
                         size:   best.play_addr?.data_size || null,
-                        label:  `${best.gear_name} · ${res}`,
+                        label:  `${best.gear_name} · ${w}×${h}`,
                     });
                 } else if (video.download_addr || video.play_addr) {
-                    formats.push({ height: h, ext: 'mp4', size: null, label: `HD · ${res}` });
+                    formats.push({ height: h, ext: 'mp4', size: null, label: `HD · ${w}×${h}` });
                 }
 
                 if (formats.length > 0) {
@@ -231,24 +208,16 @@ class TikTokProvider extends BaseProvider {
         if (data) {
             const w = data.width  || 1080;
             const h = data.height || 1920;
-            const res = `${w}×${h}`;
             const formats = [];
-
-            if (data.hdplay) {
-                formats.push({ height: h, ext: 'mp4', size: data.hd_size || null, label: `Original HD · ${res}` });
-            }
-            if (data.play) {
-                formats.push({ height: Math.round(h * 0.75), ext: 'mp4', size: data.size || null, label: `Standard · ${res}` });
-            }
-            if (formats.length === 0) formats.push({ height: 'HD', ext: 'mp4', size: null });
+            if (data.hdplay) formats.push({ height: h, ext: 'mp4', size: data.hd_size || null, label: `Original HD · ${w}×${h}` });
+            if (data.play)   formats.push({ height: Math.round(h * 0.75), ext: 'mp4', size: data.size || null, label: `Standard · ${w}×${h}` });
+            if (!formats.length) formats.push({ height: 'HD', ext: 'mp4', size: null });
 
             const dur = data.duration || 0;
-            const mm  = String(Math.floor(dur / 60));
-            const ss  = String(dur % 60).padStart(2, '0');
             return {
                 title:     data.title || 'TikTok Video',
                 thumbnail: data.cover || '',
-                duration:  `${mm}:${ss}`,
+                duration:  `${String(Math.floor(dur / 60))}:${String(dur % 60).padStart(2, '0')}`,
                 formats,
                 provider:  'tiktok',
             };
@@ -259,7 +228,7 @@ class TikTokProvider extends BaseProvider {
         const output = await this.executeYtdlp(url, {
             addHeader: [
                 'referer:https://www.tiktok.com/',
-                'user-agent:Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+                'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
             ],
             noCheckFormats: true,
         });
