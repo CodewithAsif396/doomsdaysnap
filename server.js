@@ -18,16 +18,43 @@ const app  = express();
 const PORT = process.env.PORT || 3000;
 
 const isWin = process.platform === 'win32';
-const YTDLP = isWin
-    ? path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe')
-    : (require('fs').existsSync('/usr/local/bin/yt-dlp') ? '/usr/local/bin/yt-dlp'
-    : path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp'));
 
-// Cookies file for bypassing YouTube bot detection
+// Robust yt-dlp detection
+function getYTdlpPath() {
+    // 1. Check if 'yt-dlp' is in system PATH (via 'where' or 'which')
+    // Note: In Node, we can just try to run 'yt-dlp' and see if it fails,
+    // but for absolute paths in spawn, we check common locations.
+    
+    // 2. Check root directory (manual upload)
+    const rootPath = path.join(__dirname, isWin ? 'yt-dlp.exe' : 'yt-dlp');
+    if (require('fs').existsSync(rootPath)) return rootPath;
+
+    // 3. System common paths
+    const systemPaths = isWin 
+        ? ['C:\\Program Files\\yt-dlp\\yt-dlp.exe', 'C:\\yt-dlp.exe']
+        : ['/usr/local/bin/yt-dlp', '/usr/bin/yt-dlp'];
+    
+    for (const p of systemPaths) {
+        if (require('fs').existsSync(p)) return p;
+    }
+
+    // 4. Fallback to node_modules (bundled)
+    return isWin
+        ? path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe')
+        : path.join(__dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
+}
+
+const YTDLP = getYTdlpPath();
+
+// Cookies file detection (must be netscape format)
 const COOKIES_FILE = path.join(__dirname, 'cookies.txt');
 const COOKIES_ARGS = require('fs').existsSync(COOKIES_FILE)
     ? ['--cookies', COOKIES_FILE]
     : [];
+
+console.log('[Config] Using YTDLP:', YTDLP);
+if (COOKIES_ARGS.length) console.log('[Config] Using COOKIES_FILE:', COOKIES_FILE);
+
 
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));

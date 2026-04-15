@@ -1,41 +1,111 @@
-const youtubedl = require('youtube-dl-exec');
+const { spawn }  = require('child_process');
 const ffmpegPath = require('ffmpeg-static');
 const fs         = require('fs');
 const path       = require('path');
-const { quoteArg } = require('../utils/shell');
 
-// Use system yt-dlp if available (newer, avoids bot detection better)
-const SYSTEM_YTDLP = '/usr/local/bin/yt-dlp';
-const ytdlpBin = fs.existsSync(SYSTEM_YTDLP) ? SYSTEM_YTDLP : undefined;
+const isWin = process.platform === 'win32';
 
-// Cookies for bypassing YouTube bot detection
+// Robust yt-dlp detection (align with server.js)
+function getYTdlpPath() {
+    // Check root directory
+    const rootPath = path.join(__dirname, '..', isWin ? 'yt-dlp.exe' : 'yt-dlp');
+    if (fs.existsSync(rootPath)) return rootPath;
+
+    // System common paths
+    const systemPaths = isWin 
+        ? ['C:\\Program Files\\yt-dlp\\yt-dlp.exe', 'C:\\yt-dlp.exe']
+        : ['/usr/local/bin/yt-dlp', '/usr/bin/yt-dlp'];
+    
+    for (const p of systemPaths) {
+        if (fs.existsSync(p)) return p;
+    }
+
+    // Fallback to node_modules
+    return isWin
+        ? path.join(__dirname, '..', 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe')
+        : path.join(__dirname, '..', 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp');
+}
+
+const YTDLP_BIN = getYTdlpPath();
+
+// Cookies file detection
 const COOKIES_FILE = path.join(__dirname, '..', 'cookies.txt');
-const cookiesArg   = fs.existsSync(COOKIES_FILE) ? COOKIES_FILE : null;
+const COOKIES_ARG  = fs.existsSync(COOKIES_FILE) ? COOKIES_FILE : null;
+
+console.log('[BaseProvider] Using YTDLP:', YTDLP_BIN);
+if (COOKIES_ARG) console.log('[BaseProvider] Using COOKIES_FILE:', COOKIES_ARG);
+else            console.log('[BaseProvider] cookies.txt NOT found');
+
+
+// Convert options object → CLI args array
+function toArgs(opts) {
+    const args = [];
+    for (const [key, val] of Object.entries(opts)) {
+        if (val === false || val == null) continue;
+        const flag = '--' + key.replace(/([A-Z])/g, '-$1').toLowerCase();
+        if (val === true) {
+            args.push(flag);
+        } else if (Array.isArray(val)) {
+            for (const v of val) args.push(flag, v);
+        } else {
+            args.push(flag, String(val));
+        }
+    }
+    return args;
+}
 
 class BaseProvider {
-    constructor() {
-    }
+    constructor() {}
 
     async getInfo(url) {
         throw new Error('getInfo must be implemented by subclass');
     }
 
-    async executeYtdlp(url, extraArgs = {}) {
-        const defaultArgs = {
-            dumpSingleJson:     true,
-            noWarnings:         true,
-            noCheckCertificate: true,
-            noPlaylist:         true,
-            forceIpv4:          true,
-            geoBypass:          true,
-            ffmpegLocation:     quoteArg(ffmpegPath),
-            ...(cookiesArg ? { cookies: cookiesArg } : {}),
-        };
+    async executeYtdlp(url, extraOpts = {}) {
+        return new Promise((resolve, reject) => {
+            const args = [
+                url,
+                '--dump-single-json',
+                '--no-warnings',
+                '--no-check-certificate',
+                '--no-playlist',
+                '--force-ipv4',
+                '--geo-bypass',
+                '--ffmpeg-location', ffmpegPath,
+            ];
 
-        const opts = { timeout: 45000 };
-        if (ytdlpBin) opts.execPath = ytdlpBin;
+            if (COOKIES_ARG) args.push('--cookies', COOKIES_ARG);
 
-        return await youtubedl(url, { ...defaultArgs, ...extraArgs }, opts);
+            // Append extra options converted to CLI flags
+            args.push(...toArgs(extraOpts));
+
+            const proc = spawn(YTDLP_BIN, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+            let out = '';
+            let err = '';
+
+            proc.stdout.on('data', d => out += d.toString());
+            proc.stderr.on('data', d => {
+                const line = d.toString();
+                if (!line.includes('[download]') && !line.includes('ETA')) err += line;
+            });
+
+            const timer = setTimeout(() => {
+                proc.kill('SIGKILL');
+                reject(new Error('yt-dlp timed out'));
+            }, 45000);
+
+            proc.on('close', code => {
+                clearTimeout(timer);
+                if (code === 0 && out.trim()) {
+                    try { resolve(JSON.parse(out)); }
+                    catch (e) { reject(new Error('Failed to parse yt-dlp JSON')); }
+                } else {
+                    reject(new Error(err.trim() || `yt-dlp exited with code ${code}`));
+                }
+            });
+
+            proc.on('error', e => { clearTimeout(timer); reject(e); });
+        });
     }
 }
 
