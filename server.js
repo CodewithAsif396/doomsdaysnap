@@ -19,9 +19,15 @@ const PORT = process.env.PORT || 3000;
 
 const isWin = process.platform === 'win32';
 const YTDLP = path.join(
-    __dirname, 'node_modules', 'youtube-dl-exec', 'bin', 
+    __dirname, 'node_modules', 'youtube-dl-exec', 'bin',
     isWin ? 'yt-dlp.exe' : 'yt-dlp'
 );
+
+// Cookies file for bypassing YouTube bot detection
+const COOKIES_FILE = path.join(__dirname, 'cookies.txt');
+const COOKIES_ARGS = require('fs').existsSync(COOKIES_FILE)
+    ? ['--cookies', COOKIES_FILE]
+    : [];
 
 app.use(cors());
 app.use(express.json({ limit: '10kb' }));
@@ -107,6 +113,7 @@ function getDirectUrls(safeUrl, format) {
             safeUrl, '-f', format,
             '--no-warnings', '--no-check-certificate', '--no-playlist',
             '--force-ipv4', '--geo-bypass',
+            ...COOKIES_ARGS,
             '--get-url',
         ];
         const proc  = spawn(YTDLP, args, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -150,6 +157,7 @@ function spawnMergeStream(safeUrl, format, res, req, extraArgs = []) {
         '-f', format,
         '--no-warnings', '--no-check-certificate', '--no-playlist',
         '--ffmpeg-location', quoteArg(ffmpegPath),
+        ...COOKIES_ARGS,
         ...extraArgs,
         '-o', '-',
     ];
