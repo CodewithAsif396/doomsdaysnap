@@ -1,0 +1,45 @@
+{
+  "general": {
+    "siteName": "Doomsdaysnap",
+    "tagline": "Fast video downloader",
+    "logoUrl": "",
+    "faviconUrl": ""
+  },
+  "seo": {
+    "metaDescription": "Download YouTube, TikTok, Instagram, and Twitter videos in 4K quality for free. No watermark, fast, and secure.",
+    "metaKeywords": "video downloader, youtube downloader, tiktok downloader, instagram reels downloader, 4k downloader, no watermark",
+    "ogImageUrl": ""
+  },
+  "analytics": {
+    "googleAnalyticsId": "",
+    "facebookPixelId": "",
+    "customHeadHtml": "",
+    "customBodyHtml": ""
+  },
+  "social": {
+    "twitter": "",
+    "instagram": "",
+    "youtube": "",
+    "discord": "",
+    "tiktok": ""
+  },
+  "features": {
+    "maintenanceMode": false,
+    "showAds": true,
+    "downloadLimit": 40
+  },
+  "announcement": {
+    "enabled": false,
+    "text": "",
+    "linkUrl": "",
+    "linkText": "Learn more",
+    "style": "info"
+  },
+  "hero": {
+    "headline": "Download Any Video",
+    "accent": "Without Limits.",
+    "sub": "The fastest way to save high-quality media from YouTube, TikTok, Instagram, and Twitter. Zero watermarks, 4K support, completely secure.",
+    "ctaText": "Start Downloading Now",
+    "badge": "100% Free & Fast Proxy Extraction"
+  }
+}

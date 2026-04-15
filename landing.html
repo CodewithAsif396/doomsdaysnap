@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- ── Primary SEO ──────────────────────────────────────────────────── -->
+    <title>Doomsdaysnap - Free 4K Video Downloader | YouTube, TikTok, Instagram</title>
+    <meta name="description" content="Download YouTube, TikTok, Instagram, and Twitter videos in 4K for free. No watermark, no sign-up, blazing fast. Try Doomsdaysnap now.">
+    <meta name="keywords" content="video downloader, youtube downloader, tiktok downloader, instagram reels downloader, 4k video downloader, no watermark downloader, free video downloader">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <meta name="author" content="Doomsdaysnap">
+    <link rel="canonical" href="https://doomsdaysnap.online/">
+
+    <!-- ── Open Graph ───────────────────────────────────────────────────── -->
+    <meta property="og:type"        content="website">
+    <meta property="og:url"         content="https://doomsdaysnap.online/">
+    <meta property="og:site_name"   content="Doomsdaysnap">
+    <meta property="og:title"       content="Doomsdaysnap — Free 4K Social Media Video Downloader">
+    <meta property="og:description" content="Download YouTube, TikTok, Instagram and Twitter videos in 4K. No watermark, no sign-up required.">
+    <meta property="og:image"       content="https://doomsdaysnap.online/og-image.jpg">
+    <meta property="og:image:width"  content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- ── Twitter Card ─────────────────────────────────────────────────── -->
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="Doomsdaysnap — Free 4K Video Downloader">
+    <meta name="twitter:description" content="Download YouTube, TikTok & Instagram videos in 4K. No watermark, instant, free.">
+    <meta name="twitter:image"       content="https://doomsdaysnap.online/og-image.jpg">
+
+    <!-- ── JSON-LD Structured Data ──────────────────────────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "name": "Doomsdaysnap",
+          "url": "https://doomsdaysnap.online",
+          "description": "Download YouTube, TikTok, Instagram, and Twitter videos in 4K quality for free. No watermark, no sign-up.",
+          "applicationCategory": "MultimediaApplication",
+          "operatingSystem": "All",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "featureList": ["4K video download", "No watermark", "YouTube downloader", "TikTok downloader", "Instagram Reels downloader", "Twitter/X video downloader", "MP3 audio extraction"]
+        },
+        {
+          "@type": "Organization",
+          "name": "Doomsdaysnap",
+          "url": "https://doomsdaysnap.online",
+          "logo": "https://doomsdaysnap.online/logo.png"
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            { "@type": "Question", "name": "Is Doomsdaysnap free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, Doomsdaysnap is 100% free with no hidden fees or subscriptions." } },
+            { "@type": "Question", "name": "Does it remove TikTok watermarks?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, Doomsdaysnap downloads TikTok videos without the bouncing logo watermark." } },
+            { "@type": "Question", "name": "What quality does it support?", "acceptedAnswer": { "@type": "Answer", "text": "Doomsdaysnap supports up to 4K / 1080p quality, depending on what the original video offers." } },
+            { "@type": "Question", "name": "Do I need to install anything?", "acceptedAnswer": { "@type": "Answer", "text": "No installation required. Doomsdaysnap runs entirely in your web browser." } }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <!-- ── AdPanel frontend integration ─────────────────────────────────── -->
+    <script src="/site-config.js"></script>
+
+    <!-- ── Design System ────────────────────────────────────────────────── -->
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        .platform-icon { font-size: 2.5rem; margin-bottom: 12px; transition: transform 0.3s var(--transition-smooth); }
+        .platform-card:hover .platform-icon { transform: scale(1.2) rotate(5deg); }
+
+        .step-number {
+            position: absolute; top: -20px; left: 20px;
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary)));
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 800; color: white; box-shadow: 0 4px 12px rgba(168,85,247,0.3);
+        }
+
+        .seo-section { background: hsl(var(--bg-surface)); border-radius: var(--radius-lg); padding: 60px; margin-top: 40px; }
+        .seo-section h2 { margin-bottom: 24px; color: white; }
+        .seo-section h3 { margin-top: 32px; margin-bottom: 16px; color: #fff; }
+        .seo-section p  { color: hsl(var(--text-muted)); margin-bottom: 20px; line-height: 1.8; }
+        .seo-section ul { list-style: none; margin-bottom: 24px; }
+        .seo-section li { margin-bottom: 12px; color: hsl(var(--text-muted)); display: flex; gap: 12px; }
+        .seo-section li::before { content: "→"; color: hsl(var(--accent-primary)); font-weight: bold; }
+
+        /* Ad slots — hidden until an ad is injected by site-init.js */
+        [data-ad-placement] {
+            display: none;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .ad-slot-header  { margin: 0 0 28px; padding: 0 16px; }
+        .ad-slot-content { margin: 32px 0;   padding: 0 16px; }
+        .ad-slot-footer  { margin: 32px 0 0; padding: 0 16px; }
+        /* Prevent custom demo ad HTML from overflowing; don't touch ins/iframe (ad providers) */
+        [data-ad-placement] > div, [data-ad-placement] > a, [data-ad-placement] > img {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        nav { position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; padding: 24px 0; transition: all 0.3s ease; }
+        nav.scrolled { padding: 16px 0; background: rgba(4,4,8,0.8); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .nav-content { display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: 800; font-family: 'Outfit'; text-decoration: none; color: white; }
+        .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, hsl(var(--accent-primary)), hsl(var(--accent-secondary))); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(168,85,247,0.3); }
+    </style>
+</head>
+<body class="reveal-hidden">
+
+    <!-- ── Announcement Banner (shown by site-init.js if enabled in AdPanel) ── -->
+    <div id="announcement-bar" style="display:none">
+        <span id="ann-text"></span>
+        <a id="ann-link" href="#" style="display:none;font-weight:700;text-decoration:underline;margin-left:8px"></a>
+        <button onclick="this.closest('#announcement-bar').style.display='none'"
+                style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:inherit;font-size:1.1rem;opacity:.7;line-height:1">✕</button>
+    </div>
+
+    <!-- Background Blobs -->
+    <div class="blob blob-purple" style="top:-100px;left:-100px;opacity:.2"></div>
+    <div class="blob blob-pink"   style="top:40%;right:-100px;opacity:.15"></div>
+    <div class="blob blob-purple" style="bottom:-100px;left:20%;opacity:.1"></div>
+
+    <!-- ── NAVBAR ─────────────────────────────────────────────────────────── -->
+    <nav id="navbar">
+        <div class="container nav-content">
+            <a href="/" class="logo">
+                <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+                <span>Doomsday<span class="gradient-text">snap</span></span>
+            </a>
+            <div class="nav-links">
+                <a href="/app" class="btn-primary" style="padding:10px 24px;font-size:.95rem;">
+                    Launch App <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── HERO ──────────────────────────────────────────────────────────── -->
+    <section class="hero container">
+
+        <!-- Header ad slot (banner above hero) -->
+        <div data-ad-placement="header" class="ad-slot-header reveal-up" style="transition-delay:.05s"></div>
+
+        <div class="reveal-up" style="transition-delay:.1s">
+            <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);padding:8px 16px;border-radius:100px;font-size:.85rem;font-weight:600;color:hsl(var(--text-muted));margin-bottom:24px;">
+                <span style="width:8px;height:8px;background:#22c55e;border-radius:50%;box-shadow:0 0 10px #22c55e"></span>
+                <span id="hero-badge">100% Free &amp; Fast Proxy Extraction</span>
+            </div>
+        </div>
+
+        <h1 class="reveal-up" style="transition-delay:.2s">
+            <span id="hero-headline">Download Any Video</span> <br>
+            <span class="gradient-text" id="hero-accent">Without Limits.</span>
+        </h1>
+
+        <p class="reveal-up" id="hero-sub" style="transition-delay:.3s">
+            The fastest way to save high-quality media from YouTube, TikTok, Instagram, and Twitter.
+            Zero watermarks, 4K support, and completely secure processing.
+        </p>
+
+        <div class="reveal-up" style="transition-delay:.4s">
+            <a href="/app" class="btn-primary">
+                <i class="fa-solid fa-download"></i>
+                <span id="hero-cta">Start Downloading Now</span>
+            </a>
+            <div style="margin-top:16px;font-size:.85rem;color:hsl(var(--text-dim))">
+                No installation or sign-up required. Works on Mobile &amp; PC.
+            </div>
+        </div>
+
+        <!-- Hero bottom ad slot -->
+        <div data-ad-placement="hero-bottom" class="reveal-up" style="transition-delay:.5s;margin-top:32px"></div>
+    </section>
+
+    <!-- ── PLATFORMS ──────────────────────────────────────────────────────── -->
+    <section class="container">
+        <div class="reveal-up text-center" style="margin-bottom:48px">
+            <h2 style="font-size:2.5rem;margin-bottom:16px">Supported Platforms</h2>
+            <p style="color:hsl(var(--text-muted))">Our specialised engines support all major social networks.</p>
+        </div>
+
+        <!-- In-content ad slot between hero and platforms -->
+        <div data-ad-placement="in-content" class="ad-slot-content reveal-up" style="transition-delay:.05s;margin-bottom:32px"></div>
+
+        <div class="grid-cols-3">
+            <div class="glass-card platform-card reveal-up" style="padding:32px;text-align:center;border-bottom:3px solid #ff0000;transition-delay:.1s">
+                <i class="fa-brands fa-youtube platform-icon" style="color:#ff0000"></i>
+                <h3>YouTube</h3>
+                <p style="margin-top:12px;font-size:.9rem;color:hsl(var(--text-muted))">Download 4K Shorts, Videos &amp; MP3 audio directly.</p>
+            </div>
+            <div class="glass-card platform-card reveal-up" style="padding:32px;text-align:center;border-bottom:3px solid #25F4EE;transition-delay:.2s">
+                <i class="fa-brands fa-tiktok platform-icon" style="color:#fff"></i>
+                <h3>TikTok</h3>
+                <p style="margin-top:12px;font-size:.9rem;color:hsl(var(--text-muted))">Save HD TikToks without annoying watermarks.</p>
+            </div>
+            <div class="glass-card platform-card reveal-up" style="padding:32px;text-align:center;border-bottom:3px solid #E1306C;transition-delay:.3s">
+                <i class="fa-brands fa-instagram platform-icon" style="color:#E1306C"></i>
+                <h3>Instagram</h3>
+                <p style="margin-top:12px;font-size:.9rem;color:hsl(var(--text-muted))">Fetch Reels, Stories &amp; IGTV videos instantly.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── FEATURES ───────────────────────────────────────────────────────── -->
+    <section style="background:rgba(255,255,255,.01)">
+        <div class="container">
+            <div class="reveal-up text-center" style="margin-bottom:64px">
+                <h2 style="font-size:2.5rem;margin-bottom:16px">Why Choose Doomsdaysnap?</h2>
+                <p style="color:hsl(var(--text-muted))">Designed for speed, privacy, and maximum quality.</p>
+            </div>
+            <div class="features-grid">
+                <div class="glass-card feature-item reveal-up" style="transition-delay:.1s">
+                    <div class="feature-icon"><i class="fa-solid fa-gem"></i></div>
+                    <h3>Original 4K Quality</h3>
+                    <p>We pull direct streams from source servers, ensuring you get the absolute highest resolution available, up to 4K / 1080p FHD.</p>
+                </div>
+                <div class="glass-card feature-item reveal-up" style="transition-delay:.2s">
+                    <div class="feature-icon"><i class="fa-solid fa-droplet-slash"></i></div>
+                    <h3>No Watermarks</h3>
+                    <p>Tired of the bouncing TikTok logo? Doomsdaysnap strips out all visual watermarks so your videos look pristine for sharing.</p>
+                </div>
+                <div class="glass-card feature-item reveal-up" style="transition-delay:.3s">
+                    <div class="feature-icon"><i class="fa-solid fa-bolt"></i></div>
+                    <h3>Lightning Fast</h3>
+                    <p>Powered by our advanced proxy CDN system, our engine extracts and serves videos to your device in record time.</p>
+                </div>
+                <div class="glass-card feature-item reveal-up" style="transition-delay:.4s">
+                    <div class="feature-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                    <h3>100% Secure</h3>
+                    <p>We never store or log the videos you download. Everything is processed in real time and sent directly to your device.</p>
+                </div>
+                <div class="glass-card feature-item reveal-up" style="transition-delay:.5s">
+                    <div class="feature-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+                    <h3>Works Everywhere</h3>
+                    <p>No app to install. Doomsdaysnap runs in any modern browser — desktop, tablet or mobile, iOS or Android.</p>
+                </div>
+                <div class="glass-card feature-item reveal-up" style="transition-delay:.6s">
+                    <div class="feature-icon"><i class="fa-solid fa-music"></i></div>
+                    <h3>Audio Extraction</h3>
+                    <p>Extract MP3 audio from any YouTube video. Perfect for saving podcasts, lectures, and music to listen offline.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── HOW IT WORKS ────────────────────────────────────────────────────── -->
+    <section class="container" id="how-it-works">
+        <div class="reveal-up text-center" style="margin-bottom:64px">
+            <h2 style="font-size:2.5rem;margin-bottom:16px">How It Works</h2>
+            <p style="color:hsl(var(--text-muted))">Three simple steps to save your favourite content.</p>
+        </div>
+        <div class="grid-cols-3">
+            <div class="glass-card reveal-up" style="padding:48px 32px;position:relative;transition-delay:.1s">
+                <div class="step-number">1</div>
+                <h3 style="margin-top:12px">Copy Link</h3>
+                <p style="margin-top:16px;color:hsl(var(--text-muted))">Find the video you want on any platform and copy the share link.</p>
+            </div>
+            <div class="glass-card reveal-up" style="padding:48px 32px;position:relative;transition-delay:.2s">
+                <div class="step-number">2</div>
+                <h3 style="margin-top:12px">Paste &amp; Fetch</h3>
+                <p style="margin-top:16px;color:hsl(var(--text-muted))">Paste the URL into our tool and click 'Fetch Video'.</p>
+            </div>
+            <div class="glass-card reveal-up" style="padding:48px 32px;position:relative;transition-delay:.3s">
+                <div class="step-number">3</div>
+                <h3 style="margin-top:12px">Download</h3>
+                <p style="margin-top:16px;color:hsl(var(--text-muted))">Choose your preferred quality and hit 'Download'. Done!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── FAQ ────────────────────────────────────────────────────────────── -->
+    <section class="container" id="faq">
+        <div class="reveal-up text-center" style="margin-bottom:48px">
+            <h2 style="font-size:2.5rem;margin-bottom:16px">Frequently Asked Questions</h2>
+        </div>
+        <div style="max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+            <details class="glass-card reveal-up" style="padding:24px 28px;cursor:pointer;transition-delay:.1s">
+                <summary style="font-weight:600;font-size:1.05rem;list-style:none;display:flex;justify-content:space-between;align-items:center">
+                    Is Doomsdaysnap completely free? <i class="fa-solid fa-plus" style="color:hsl(var(--accent-primary))"></i>
+                </summary>
+                <p style="margin-top:14px;color:hsl(var(--text-muted));line-height:1.7">Yes. Doomsdaysnap is 100% free with no hidden fees, no subscriptions, and no premium tiers. All features are available to everyone.</p>
+            </details>
+            <details class="glass-card reveal-up" style="padding:24px 28px;cursor:pointer;transition-delay:.2s">
+                <summary style="font-weight:600;font-size:1.05rem;list-style:none;display:flex;justify-content:space-between;align-items:center">
+                    Does it remove TikTok watermarks? <i class="fa-solid fa-plus" style="color:hsl(var(--accent-primary))"></i>
+                </summary>
+                <p style="margin-top:14px;color:hsl(var(--text-muted));line-height:1.7">Yes. Doomsdaysnap downloads TikTok videos directly from the source, bypassing the overlay watermark entirely.</p>
+            </details>
+            <details class="glass-card reveal-up" style="padding:24px 28px;cursor:pointer;transition-delay:.3s">
+                <summary style="font-weight:600;font-size:1.05rem;list-style:none;display:flex;justify-content:space-between;align-items:center">
+                    What resolutions are supported? <i class="fa-solid fa-plus" style="color:hsl(var(--accent-primary))"></i>
+                </summary>
+                <p style="margin-top:14px;color:hsl(var(--text-muted));line-height:1.7">Doomsdaysnap supports 360p, 480p, 720p, 1080p, and 4K (2160p) — whatever quality the original video was uploaded in.</p>
+            </details>
+            <details class="glass-card reveal-up" style="padding:24px 28px;cursor:pointer;transition-delay:.4s">
+                <summary style="font-weight:600;font-size:1.05rem;list-style:none;display:flex;justify-content:space-between;align-items:center">
+                    Do I need to create an account? <i class="fa-solid fa-plus" style="color:hsl(var(--accent-primary))"></i>
+                </summary>
+                <p style="margin-top:14px;color:hsl(var(--text-muted));line-height:1.7">No account or sign-up needed. Just paste a link and download. Nothing is stored about your activity.</p>
+            </details>
+        </div>
+    </section>
+
+    <!-- ── SEO CONTENT ────────────────────────────────────────────────────── -->
+    <section class="container">
+        <div class="seo-section reveal-up">
+            <h2>The Best Free Social Media Video Downloader in 2026</h2>
+            <p>In today's digital era, we consume countless hours of content across platforms like YouTube, TikTok, and Instagram. But what happens when you want to save that content for offline viewing? That's where <strong>Doomsdaysnap</strong> comes in — the fastest, cleanest, and most reliable video downloader available entirely in your browser.</p>
+
+            <h3>Download YouTube Videos in 4K — No Software Needed</h3>
+            <p>Our YouTube downloader supports all resolutions from 360p up to 4K Ultra HD. Whether you want to save a tutorial, a music video, or a YouTube Short, simply paste the link and choose your quality. We also support MP3 audio extraction for podcasts and lectures.</p>
+
+            <h3>TikTok Downloader Without Watermark</h3>
+            <p>Our specialised TikTok engine fetches the clean video directly from TikTok's CDN, bypassing the branding overlay entirely. The result is a crystal-clear HD video ready for editing or sharing.</p>
+
+            <h3>Instagram Reels &amp; Stories Downloader</h3>
+            <p>Save Instagram Reels, Videos, and Stories instantly. Just copy the post URL from the Instagram app and paste it into Doomsdaysnap. Works with public accounts.</p>
+
+            <h3>Key Features</h3>
+            <ul>
+                <li><strong>100% Secure &amp; Private:</strong> We do not store, log, or track any downloads. Everything processes directly through your browser session.</li>
+                <li><strong>Cross-Platform:</strong> Download from YouTube, TikTok, Instagram, and X (Twitter) from a single interface.</li>
+                <li><strong>High-Speed CDN:</strong> Our optimised proxy engine delivers videos at full CDN speed.</li>
+                <li><strong>No Installation:</strong> Zero bloatware, zero apps. Doomsdaysnap works in any modern browser.</li>
+                <li><strong>Completely Free:</strong> No hidden fees, no subscriptions, no premium tiers. Ever.</li>
+            </ul>
+
+            <div style="text-align:center;margin-top:40px">
+                <a href="/app" class="btn-primary">Open Downloader App <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
+    <footer style="padding:60px 0;border-top:1px solid rgba(255,255,255,.05);margin-top:80px">
+
+        <!-- Footer ad slot -->
+        <div data-ad-placement="footer" class="ad-slot-footer" style="margin-bottom:40px;text-align:center"></div>
+
+        <div class="container" style="display:flex;flex-direction:column;align-items:center;gap:32px">
+            <a href="/" class="logo">
+                <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+                <span>Doomsday<span class="gradient-text">snap</span></span>
+            </a>
+
+            <!-- Social links — shown/hidden dynamically by site-init.js -->
+            <div style="display:flex;gap:24px">
+                <a id="footer-twitter"   href="#" style="color:hsl(var(--text-dim));font-size:1.5rem;transition:color .3s;display:none" onmouseover="this.style.color='white'" onmouseout="this.style.color='hsl(var(--text-dim))'"><i class="fa-brands fa-x-twitter"></i></a>
+                <a id="footer-instagram" href="#" style="color:hsl(var(--text-dim));font-size:1.5rem;transition:color .3s;display:none" onmouseover="this.style.color='white'" onmouseout="this.style.color='hsl(var(--text-dim))'"><i class="fa-brands fa-instagram"></i></a>
+                <a id="footer-youtube"   href="#" style="color:hsl(var(--text-dim));font-size:1.5rem;transition:color .3s;display:none" onmouseover="this.style.color='white'" onmouseout="this.style.color='hsl(var(--text-dim))'"><i class="fa-brands fa-youtube"></i></a>
+                <a id="footer-discord"   href="#" style="color:hsl(var(--text-dim));font-size:1.5rem;transition:color .3s;display:none" onmouseover="this.style.color='white'" onmouseout="this.style.color='hsl(var(--text-dim))'"><i class="fa-brands fa-discord"></i></a>
+                <a id="footer-tiktok"    href="#" style="color:hsl(var(--text-dim));font-size:1.5rem;transition:color .3s;display:none" onmouseover="this.style.color='white'" onmouseout="this.style.color='hsl(var(--text-dim))'"><i class="fa-brands fa-tiktok"></i></a>
+                <!-- Fallback social icons shown if backend not connected -->
+                <a class="fallback-social" href="#" style="color:hsl(var(--text-dim));font-size:1.5rem;transition:color .3s" onmouseover="this.style.color='white'" onmouseout="this.style.color='hsl(var(--text-dim))'"><i class="fa-brands fa-x-twitter"></i></a>
+                <a class="fallback-social" href="#" style="color:hsl(var(--text-dim));font-size:1.5rem;transition:color .3s" onmouseover="this.style.color='white'" onmouseout="this.style.color='hsl(var(--text-dim))'"><i class="fa-brands fa-github"></i></a>
+                <a class="fallback-social" href="#" style="color:hsl(var(--text-dim));font-size:1.5rem;transition:color .3s" onmouseover="this.style.color='white'" onmouseout="this.style.color='hsl(var(--text-dim))'"><i class="fa-brands fa-discord"></i></a>
+            </div>
+
+            <p style="color:hsl(var(--text-dim));font-size:.9rem;text-align:center">
+                &copy; 2026 Doomsdaysnap. All rights reserved.<br>
+                For personal use only. We are not affiliated with YouTube, TikTok, or Instagram.
+            </p>
+        </div>
+    </footer>
+
+    <!-- ── AdPanel integration script ───────────────────────────────────── -->
+    <script src="/site-init.js" defer></script>
+
+    <!-- ── Page Scripts ──────────────────────────────────────────────────── -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Reveal animations
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('reveal-visible'); });
+            }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+
+            document.querySelectorAll('.reveal-up').forEach(el => {
+                el.classList.add('reveal-hidden');
+                observer.observe(el);
+            });
+            setTimeout(() => document.body.classList.add('reveal-visible'), 100);
+
+            // Navbar scroll effect
+            const nav = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                nav.classList.toggle('scrolled', window.scrollY > 50);
+            });
+
+            // Hide fallback social icons once backend responds
+            // (site-init.js will show the real ones)
+            setTimeout(() => {
+                const anyVisible = ['footer-twitter','footer-instagram','footer-youtube','footer-discord','footer-tiktok']
+                    .some(id => { const el = document.getElementById(id); return el && el.style.display !== 'none'; });
+                if (anyVisible) {
+                    document.querySelectorAll('.fallback-social').forEach(el => el.style.display = 'none');
+                }
+            }, 1500);
+        });
+    </script>
+</body>
+</html>

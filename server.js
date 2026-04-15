@@ -6,6 +6,7 @@ const http       = require('http');
 const { spawn }  = require('child_process');
 
 const { sanitizeUrl } = require('./utils/sanitizer');
+const { quoteArg }    = require('./utils/shell');
 const ffmpegPath      = require('ffmpeg-static');
 
 
@@ -16,8 +17,10 @@ const SocialProvider  = require('./providers/SocialProvider');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+const isWin = process.platform === 'win32';
 const YTDLP = path.join(
-    __dirname, 'node_modules', 'youtube-dl-exec', 'bin', 'yt-dlp.exe'
+    __dirname, 'node_modules', 'youtube-dl-exec', 'bin', 
+    isWin ? 'yt-dlp.exe' : 'yt-dlp'
 );
 
 app.use(cors());
@@ -104,7 +107,6 @@ function getDirectUrls(safeUrl, format) {
             safeUrl, '-f', format,
             '--no-warnings', '--no-check-certificate', '--no-playlist',
             '--force-ipv4', '--geo-bypass',
-            '--extractor-args', 'youtube:player_client=tv_embedded,ios,mweb',
             '--get-url',
         ];
         const proc  = spawn(YTDLP, args, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -147,7 +149,7 @@ function spawnMergeStream(safeUrl, format, res, req, extraArgs = []) {
         safeUrl,
         '-f', format,
         '--no-warnings', '--no-check-certificate', '--no-playlist',
-        '--ffmpeg-location', ffmpegPath,
+        '--ffmpeg-location', quoteArg(ffmpegPath),
         ...extraArgs,
         '-o', '-',
     ];
@@ -175,7 +177,29 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/', (_req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'landing.html'));
+});
+
+app.get('/app', (_req, res) => {
+    res.sendFile(path.join(__dirname, 'app.html'));
+});
+
+// ─── SEO ──────────────────────────────────────────────────────────────────────
+app.get('/sitemap.xml', (_req, res) => {
+    const base = process.env.SITE_URL || 'https://doomsdaysnap.online';
+    const now = new Date().toISOString().split('T')[0];
+    res.header('Content-Type', 'application/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${base}/</loc><lastmod>${now}</lastmod><priority>1.0</priority><changefreq>weekly</changefreq></url>
+  <url><loc>${base}/app</loc><lastmod>${now}</lastmod><priority>0.9</priority><changefreq>weekly</changefreq></url>
+</urlset>`);
+});
+
+app.get('/robots.txt', (_req, res) => {
+    const base = process.env.SITE_URL || 'https://doomsdaysnap.online';
+    res.header('Content-Type', 'text/plain');
+    res.send(`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${base}/sitemap.xml`);
 });
 
 // Info — metadata only, nothing stored
@@ -206,10 +230,8 @@ app.post('/api/info', rateLimit, async (req, res) => {
     }
 });
 
-// ─── Platform-specific extra args for download ───────────────────────────────
-const YT_ARGS = [
-    '--extractor-args', 'youtube:player_client=tv_embedded,ios,mweb',
-];
+// Platform-specific extra args for download (modernized fallback)
+const YT_ARGS = [];
 const TIKTOK_ARGS = [
     '--add-header', 'referer:https://www.tiktok.com/',
     '--add-header', 'origin:https://www.tiktok.com',
@@ -247,7 +269,7 @@ app.get('/api/download', rateLimit, async (req, res) => {
         ? `bestvideo*[height<=${parseInt(type) || 1080}]+bestaudio/best[height<=${parseInt(type) || 1080}]/best`
         : rawFormat;
 
-    const filename = `snapload_${Date.now()}.${ext}`;
+    const filename = `doomsdaysnap_${Date.now()}.${ext}`;
 
     console.log(`[DOWNLOAD] type=${type} → ${safeUrl}`);
 
@@ -294,5 +316,5 @@ app.get('/api/download', rateLimit, async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 SnapLoad running at http://localhost:${PORT}`);
+    console.log(`🚀 Doomsdaysnap running at http://localhost:${PORT}`);
 });

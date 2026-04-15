@@ -1,13 +1,15 @@
-const youtubedl = require('youtube-dl-exec');
-const ffmpegPath = require('ffmpeg-static');
+const youtubedl    = require('youtube-dl-exec');
+const ffmpegPath    = require('ffmpeg-static');
+const { quoteArg }  = require('../utils/shell');
 
 const test = async () => {
     try {
         console.log('FFMPEG Path:', ffmpegPath);
-        const output = await youtubedl('https://www.youtube.com/watch?v=aqz-KE-bpKQ', {
+        const output = await youtubedl('https://www.youtube.com/watch?v=LS7woAN6O3s', {
             dumpSingleJson: true,
-            ffmpegLocation: ffmpegPath,
+            ffmpegLocation: quoteArg(ffmpegPath),
             userAgent: 'Mozilla/5.0'
+            // extractorArgs: 'youtube:player_client=tv_embedded,ios,mweb'
         });
         console.log('Success!');
     } catch (err) {

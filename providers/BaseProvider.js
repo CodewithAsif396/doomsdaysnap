@@ -18,7 +18,7 @@ class BaseProvider {
             noPlaylist:         true,
             forceIpv4:          true,
             geoBypass:          true,
-            ffmpegLocation:     ffmpegPath,
+            ffmpegLocation:     quoteArg(ffmpegPath),
         };
 
         return await youtubedl(url, { ...defaultArgs, ...extraArgs }, { timeout: 45000 });

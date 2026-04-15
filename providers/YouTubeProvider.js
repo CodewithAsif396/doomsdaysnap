@@ -3,8 +3,8 @@ const BaseProvider = require('./BaseProvider');
 class YouTubeProvider extends BaseProvider {
     async getInfo(url) {
         const output = await this.executeYtdlp(url, {
-            // Stable client bypass for 403s and Bot Detection
-            extractorArgs: 'youtube:player_client=tv_embedded,ios,mweb',
+            // Let yt-dlp determine the best client dynamically.
+            // This avoids "Requested format is not available" errors.
         });
 
         const formats = output.formats || [];

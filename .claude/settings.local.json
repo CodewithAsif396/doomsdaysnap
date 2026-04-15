@@ -27,7 +27,27 @@
       "Bash(node -e 'let d='\\\\'''\\\\'';process.stdin.on\\('\\\\''data'\\\\'',c=>d+=c\\);process.stdin.on\\('\\\\''end'\\\\'',\\(\\)=>{:*)",
       "Bash(time curl:*)",
       "Bash(npm install:*)",
-      "Bash(YOUTUBE_DL_SKIP_PYTHON_CHECK=1 npm install youtube-dl-exec@latest)"
+      "Bash(YOUTUBE_DL_SKIP_PYTHON_CHECK=1 npm install youtube-dl-exec@latest)",
+      "Bash(curl -s -X POST http://localhost:4000/admin/login -H 'Content-Type: application/json' -d '{\"username\":\"admin\",\"password\":\"changeme123\"}')",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\('Token OK:', !!d.token\\)\")",
+      "Bash(curl -s http://localhost:4000/api/ads)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\('Ads array:', Array.isArray\\(d\\)\\)\")",
+      "Bash(curl -s http://localhost:4000/api/settings/public)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\('siteName:', d.general?.siteName\\)\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":4000\")",
+      "Bash(awk '{print $5}')",
+      "Bash(xargs -I{} taskkill /PID {} /F)",
+      "Bash(node test.js)",
+      "Bash(kill %1)",
+      "Bash(powershell -Command ':*)",
+      "Bash(powershell -Command '\\(Get-NetTCPConnection -LocalPort 4000 -ErrorAction SilentlyContinue\\).OwningProcess | Where-Object { $_ -match '\\\\''^\\\\d+$'\\\\'' } | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force }')",
+      "Bash(powershell -Command '\\(Get-NetTCPConnection -LocalPort 4000,3000 -ErrorAction SilentlyContinue\\).OwningProcess | Where-Object { $_ -match '\\\\''^\\\\d+$'\\\\'' } | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }')",
+      "Bash(curl -s http://localhost:4000/api/settings/public -o /tmp/sp.json)",
+      "Bash(powershell -Command '\\(Get-NetTCPConnection -LocalPort 4000 -ErrorAction SilentlyContinue\\).OwningProcess | Where-Object {$_ -match '\\\\''^\\\\d+$'\\\\''} | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -EA SilentlyContinue }')",
+      "Bash(powershell -Command '\\(Get-NetTCPConnection -LocalPort 4000 -EA SilentlyContinue\\).OwningProcess | Where-Object {$_ -match '\\\\''^\\\\d+$'\\\\''} | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -EA SilentlyContinue }')",
+      "Bash(powershell -Command '\\(Get-NetTCPConnection -LocalPort 3000,4000 -EA SilentlyContinue\\).OwningProcess | Where-Object {$_ -match '\\\\''^\\\\d+$'\\\\''} | Sort-Object -Unique | ForEach-Object { Stop-Process -Id $_ -Force -EA SilentlyContinue }')",
+      "Bash(node seed-demo-ads.js)"
     ]
   }
 }

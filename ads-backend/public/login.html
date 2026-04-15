@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AdPanel — Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#070b14;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+
+.bg{position:fixed;inset:0;z-index:0}
+.bg-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35}
+.bg-blob:nth-child(1){width:500px;height:500px;background:radial-gradient(circle,#7c3aed,transparent);top:-10%;left:-10%}
+.bg-blob:nth-child(2){width:400px;height:400px;background:radial-gradient(circle,#2563eb,transparent);bottom:-10%;right:-10%}
+.bg-blob:nth-child(3){width:300px;height:300px;background:radial-gradient(circle,#0ea5e9,transparent);top:50%;left:50%;transform:translate(-50%,-50%)}
+
+.card{position:relative;z-index:1;background:rgba(255,255,255,.04);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:2.5rem 2rem;width:100%;max-width:400px;box-shadow:0 25px 60px rgba(0,0,0,.5)}
+
+.brand{display:flex;align-items:center;gap:.75rem;margin-bottom:2rem;justify-content:center}
+.brand-icon{width:44px;height:44px;background:linear-gradient(135deg,#7c3aed,#2563eb);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.brand-name{font-size:1.4rem;font-weight:700;color:#f0f6fc;letter-spacing:-.02em}
+
+.card h2{font-size:1.4rem;font-weight:700;color:#f0f6fc;text-align:center;margin-bottom:.5rem}
+.card p{color:#64748b;text-align:center;font-size:.9rem;margin-bottom:2rem}
+
+.field{margin-bottom:1.2rem}
+.field label{display:block;font-size:.8rem;font-weight:500;color:#94a3b8;margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.05em}
+.field input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:.8rem 1rem;color:#f0f6fc;font-size:.95rem;font-family:inherit;transition:border-color .2s,box-shadow .2s;outline:none}
+.field input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.2)}
+.field input::placeholder{color:#475569}
+
+.btn{width:100%;padding:.9rem;background:linear-gradient(135deg,#7c3aed,#2563eb);border:none;border-radius:10px;color:#fff;font-size:.95rem;font-weight:600;font-family:inherit;cursor:pointer;transition:opacity .2s,transform .1s;margin-top:.5rem}
+.btn:hover{opacity:.9}
+.btn:active{transform:scale(.99)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.error{margin-top:1rem;padding:.75rem 1rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#f87171;font-size:.85rem;text-align:center;display:none}
+.error.show{display:block}
+
+.loading{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;margin-right:.5rem;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="bg">
+  <div class="bg-blob"></div>
+  <div class="bg-blob"></div>
+  <div class="bg-blob"></div>
+</div>
+<div class="card">
+  <div class="brand">
+    <div class="brand-icon">⚡</div>
+    <span class="brand-name">AdPanel</span>
+  </div>
+  <h2>Welcome back</h2>
+  <p>Sign in to manage your ads &amp; settings</p>
+  <form id="login-form">
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="username" placeholder="admin" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn" id="login-btn">Sign In</button>
+    <div class="error" id="error-msg"></div>
+  </form>
+</div>
+<script>
+  // Redirect if already logged in
+  if (localStorage.getItem('adpanel_token')) window.location.href = '/dashboard';
+
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('error-msg');
+    err.classList.remove('show');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading"></span>Signing in…';
+
+    try {
+      const res = await fetch('/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: document.getElementById('username').value.trim(),
+          password: document.getElementById('password').value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed.');
+      localStorage.setItem('adpanel_token', data.token);
+      window.location.href = '/dashboard';
+    } catch (ex) {
+      err.textContent = ex.message;
+      err.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+</script>
+</body>
+</html>
