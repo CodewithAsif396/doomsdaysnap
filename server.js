@@ -5,9 +5,10 @@ const https      = require('https');
 const http       = require('http');
 const { spawn }  = require('child_process');
 
-const { sanitizeUrl } = require('./utils/sanitizer');
+const { sanitizeUrl }    = require('./utils/sanitizer');
+const { getTikTokCdnUrl } = require('./utils/tiktokBrowser');
 
-const ffmpegPath      = require('ffmpeg-static');
+const ffmpegPath = require('ffmpeg-static');
 
 
 const YouTubeProvider = require('./providers/YouTubeProvider');
@@ -432,6 +433,28 @@ app.get('/api/download', rateLimit, async (req, res) => {
                 setTimeout(() => { r.destroy(); resolve(safeUrl); }, 6000);
             });
             const videoId = resolvedTikTokUrl.match(/video\/(\d+)/)?.[1];
+
+            // ── Step 0 (Primary): Headless Chrome + Stealth ───────────────────
+            // TikTok sees a real Chrome browser → intercepts bit_rate[] API response
+            // → original HEVC CDN URL (6,000–8,000 kbps vs 800 kbps from APIs)
+            if (!isAudio && !res.headersSent) {
+                console.log('[DOWNLOAD] TikTok → Puppeteer browser (original quality)');
+                const browserUrl = await getTikTokCdnUrl(resolvedTikTokUrl).catch(err => {
+                    console.error('[TikTokBrowser]', err.message);
+                    return null;
+                });
+                if (browserUrl) {
+                    const dlHeaders = {
+                        'Referer': 'https://www.tiktok.com/',
+                        'Origin':  'https://www.tiktok.com',
+                    };
+                    if (process.env.TIKTOK_COOKIE) dlHeaders['Cookie'] = process.env.TIKTOK_COOKIE;
+                    const ok = await pipeCdnUrl(browserUrl, res, req, dlHeaders);
+                    if (ok) return;
+                    console.log('[DOWNLOAD] TikTok browser URL failed CDN pipe — trying fallbacks');
+                }
+            }
+
             if (videoId) {
                 const { item, ttToken } = await new Promise((resolve) => {
                     const qs = [
@@ -572,18 +595,13 @@ app.get('/api/download', rateLimit, async (req, res) => {
             }
 
             // Step 3: yt-dlp with TikTok-specific cookies (cookiess.txt)
-            // With valid TikTok session cookie → htdefbr format (~71MB original quality)
-            // Without cookie (datacenter IP)  → bytevc1_1080p (~9MB, best available)
             if (!res.headersSent) {
                 console.log(`[DOWNLOAD] TikTok → yt-dlp tiktok-cookies=${TIKTOK_COOKIES_ARGS.length > 0}`);
-                // bytevc1_1080p (h265, 9.35MB) > h264_540p (h264, 9.98MB despite larger size)
-                // height>=1920 targets portrait 1080x1920, width>=1080 as fallback
                 spawnMergeStream(
                     safeUrl,
                     'bestvideo[height>=1920]/bestvideo[width>=1080]/bestvideo/best',
                     res, req,
-                    TIKTOK_ARGS,
-                    TIKTOK_COOKIES_ARGS
+                    [...TIKTOK_ARGS, ...TIKTOK_COOKIES_ARGS]
                 );
             }
         } else if (isInstagram) {
