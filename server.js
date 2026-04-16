@@ -435,23 +435,19 @@ app.get('/api/download', rateLimit, async (req, res) => {
             const videoId = resolvedTikTokUrl.match(/video\/(\d+)/)?.[1];
 
             // ── Step 0 (Primary): Headless Chrome + Stealth ───────────────────
-            // TikTok sees a real Chrome browser → intercepts bit_rate[] API response
-            // → original HEVC CDN URL (6,000–8,000 kbps vs 800 kbps from APIs)
+            // Browser intercepts the actual CDN request (URL + cookies like tt_chain_token)
+            // then our server replays it → TikTok CDN serves original HEVC quality
             if (!isAudio && !res.headersSent) {
                 console.log('[DOWNLOAD] TikTok → Puppeteer browser (original quality)');
-                const browserUrl = await getTikTokCdnUrl(resolvedTikTokUrl).catch(err => {
+                const captured = await getTikTokCdnUrl(resolvedTikTokUrl).catch(err => {
                     console.error('[TikTokBrowser]', err.message);
                     return null;
                 });
-                if (browserUrl) {
-                    const dlHeaders = {
-                        'Referer': 'https://www.tiktok.com/',
-                        'Origin':  'https://www.tiktok.com',
-                    };
-                    if (process.env.TIKTOK_COOKIE) dlHeaders['Cookie'] = process.env.TIKTOK_COOKIE;
-                    const ok = await pipeCdnUrl(browserUrl, res, req, dlHeaders);
+                if (captured?.url) {
+                    // Use the browser's own headers (incl. tt_chain_token cookie)
+                    const ok = await pipeCdnUrl(captured.url, res, req, captured.headers);
                     if (ok) return;
-                    console.log('[DOWNLOAD] TikTok browser URL failed CDN pipe — trying fallbacks');
+                    console.log('[DOWNLOAD] TikTok browser CDN pipe failed — trying fallbacks');
                 }
             }
 
