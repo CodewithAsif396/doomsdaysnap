@@ -184,7 +184,7 @@
                     <input
                         type="text"
                         id="video-url"
-                        class="flex-grow bg-transparent border-none text-white px-2 py-3.5 focus:outline-none placeholder-gray-600 w-full text-base"
+                        class="flex-grow bg-transparent border-none text-white px-2 py-3.5 focus:outline-none placeholder-gray-400 w-full text-base"
                         placeholder="Paste your YouTube link here..."
                         autocomplete="off"
                         spellcheck="false"
@@ -610,8 +610,11 @@
 
         // ── Paste from Clipboard ─────────────────────────────────────────────
         function pasteFromClipboard() {
-            if (!navigator.clipboard) {
-                showToast('Clipboard not supported — please paste manually (Ctrl+V)', 'warning');
+            // On mobile, clipboard API triggers a permission popup — just focus input instead
+            var isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+            if (isMobile || !navigator.clipboard || !navigator.clipboard.readText) {
+                urlInput.focus();
+                showToast('Input pe tap karo aur paste karo', 'info', 3000);
                 return;
             }
             navigator.clipboard.readText().then(function (text) {
@@ -620,10 +623,12 @@
                     urlInput.dispatchEvent(new Event('input'));
                     showToast('Link pasted!', 'success', 2000);
                 } else {
-                    showToast('Clipboard is empty', 'warning', 2000);
+                    urlInput.focus();
+                    showToast('Clipboard empty — manually paste (Ctrl+V)', 'warning', 2500);
                 }
             }).catch(function () {
-                showToast('Clipboard access denied — please paste manually (Ctrl+V)', 'warning');
+                urlInput.focus();
+                showToast('Paste manually — Ctrl+V or long-press', 'info', 2500);
             });
         }
 
