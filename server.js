@@ -1,6 +1,7 @@
 const express    = require('express');
 const cors       = require('cors');
 const path       = require('path');
+const fs         = require('fs');
 const https      = require('https');
 const http       = require('http');
 const { spawn }  = require('child_process');
@@ -52,7 +53,6 @@ function getYTdlpPath() {
 const YTDLP = getYTdlpPath();
 
 // Cookies file detection (must be netscape format)
-const fs = require('fs');
 const COOKIES_FILE        = path.join(__dirname, 'cookies.txt');   // YouTube
 const TIKTOK_COOKIES_FILE = path.join(__dirname, 'cookiess.txt');  // TikTok
 
@@ -286,11 +286,465 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.get('/', (_req, res) => {
-    res.sendFile(path.join(__dirname, 'landing.html'));
+    fs.readFile(path.join(__dirname, 'app.html'), 'utf8', (err, data) => {
+        if (err) return res.status(500).send('Error');
+        
+        // Hide small tab row for home page
+        let modified = data.replace('id="platform-tabs-row"', 'id="platform-tabs-row" style="display:none !important"');
+        
+        // Hide downloader input on home page as per user request (Selection hub only)
+        modified = modified.replace('id="downloader-input-section"', 'id="downloader-input-section" style="display:none !important"');
+        modified = modified.replace('id="mobile-paste-sample-row"', 'id="mobile-paste-sample-row" style="display:none !important"');
+        
+        // Generate Large Premium Grid for Home Page
+        const gridHtml = `
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 stagger-reveal">
+                ${Object.keys(PLATFORM_SEO_DATA).map(key => {
+                    const p = PLATFORM_SEO_DATA[key];
+                    const name = key.split('-')[0].charAt(0).toUpperCase() + key.split('-')[0].slice(1);
+                    return `
+                        <a href="/${key}" class="group relative flex flex-col items-center justify-center p-8 rounded-3xl glass-card border border-white/5 hover:border-white/20 transition-all duration-500 hover-lift overflow-hidden stagger-item">
+                            <div class="absolute inset-0 bg-gradient-to-br ${p.bg.replace('10', '20')} opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                            <div class="relative z-10 w-20 h-20 rounded-2xl ${p.bg} flex items-center justify-center mb-6 transform group-hover:scale-110 transition-transform duration-500 shadow-xl shadow-black/20">
+                                <i class="fa-brands ${p.icon} text-4xl ${p.color}"></i>
+                            </div>
+                            <h3 class="relative z-10 text-xl font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">${name}</h3>
+                            <p class="relative z-10 text-[10px] text-gray-500 uppercase tracking-widest font-semibold">Download Now</p>
+                            <div class="absolute bottom-4 right-4 text-white/5 group-hover:text-white/20 transition-colors">
+                                <i class="fa-solid fa-arrow-right-long text-xl"></i>
+                            </div>
+                        </a>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+        modified = modified.replace('<!-- HOME_PLATFORM_GRID -->', gridHtml);
+        
+        // Ensure tool-specific sections are empty on home page
+        modified = modified.replace('<!-- TOOL_STEPS -->', '');
+        modified = modified.replace('<!-- TOOL_FAQ -->', '');
+        modified = modified.replace('<!-- TOOL_GRID_ITEMS -->', '');
+        modified = modified.replace('<!-- TOOL_RICH_CONTENT -->', '');
+        
+        res.send(modified);
+    });
 });
 
 app.get('/app', (_req, res) => {
-    res.sendFile(path.join(__dirname, 'app.html'));
+    res.redirect(301, '/');
+});
+
+// ─── Platform-specific SEO pages with Dynamic Metadata ────────────────────────
+const PLATFORM_SEO_DATA = {
+    'youtube-downloader': {
+        title: 'YouTube Video Downloader - Download Shorts & HD Videos | Doomsdaysnap',
+        desc: 'Fast and free YouTube video downloader. Download high-quality YouTube videos and Shorts in MP4 or MP3 format with Doomsdaysnap.',
+        h1: 'YouTube Video Downloader',
+        icon: 'fa-youtube', color: 'text-red-500', border: 'border-t-red-500/40', bg: 'bg-red-500/10',
+        longContent: `
+            <div class="prose prose-invert max-w-none">
+                <p class="text-lg text-gray-300 leading-relaxed mb-6">
+                    Doomsdaysnap is the premier destination for high-performance YouTube video downloads. Our engine is engineered to bypass complex platform restrictions, providing you with direct access to your favorite content in stunning 4K and 1080p resolutions. Whether you're looking to save a trending YouTube Short, a music video, or a long-form documentary, our tool ensures a lightning-fast experience with no watermark and zero registration required.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h3 class="text-xl font-bold mb-3 text-red-400">High-Resolution Downloads</h3>
+                        <p class="text-gray-400 text-sm">We don't compromise on quality. If the source is 4K, you get 4K. Our tool fetches the highest bitrate streams available directly from the source.</p>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl">
+                        <h3 class="text-xl font-bold mb-3 text-red-400">YouTube Shorts Specialist</h3>
+                        <p class="text-gray-400 text-sm">Download unlimited YouTube Shorts in high definition. Our mobile-first design makes it incredibly easy to save Shorts directly to your phone's gallery.</p>
+                    </div>
+                </div>
+                <p class="text-gray-400 leading-relaxed">
+                    Why settle for low-quality screen recordings? With Doomsdaysnap, you get the actual file data. Our system analyzes the YouTube URL, identifies all available formats (MP4, WEBM, MP3), and presents them to you in an easy-to-use interface. It is 100% free, safe from malware, and compatible with all modern browsers across Windows, macOS, Android, and iOS.
+                </p>
+            </div>
+        `,
+        steps: [
+            { icon: 'fa-copy', text: 'Copy YouTube URL', desc: 'Copy the link of the video or Short from YouTube.' },
+            { icon: 'fa-paste', text: 'Paste in Search', desc: 'Paste the link into the box above and hit enter.' },
+            { icon: 'fa-file-video', text: 'Select & Save', desc: 'Choose your quality (4K/1080p) or MP3 and download.' }
+        ],
+        faqs: [
+            { q: "Can I download YouTube Shorts?", a: "Yes! Doomsdaysnap fully supports high-quality YouTube Shorts downloads without watermarks." },
+            { q: "How to save YouTube as MP3?", a: "Simply paste the link and select the 'Audio/MP3' option from the result list." },
+            { q: "Is 4K resolution supported?", a: "Yes, we fetch the highest available resolution, including 4K and 8K where available." },
+            { q: "Do I need an account?", a: "No, our tool is 100% anonymous and requires no registration or login." },
+            { q: "Is it free for unlimited use?", a: "Absolutely. You can download as many videos as you want without any cost." },
+            { q: "How fast are the downloads?", a: "We use high-speed proxy servers to ensure you download at the maximum speed allowed by your ISP." },
+            { q: "Does it work on mobile?", a: "Yes, Doomsdaysnap is fully optimized for Chrome, Safari, and other mobile browsers." },
+            { q: "Are the downloads safe?", a: "Yes, we provide direct file links and do not serve intrusive ads or malware." },
+            { q: "Can I download private videos?", a: "No, for security and privacy reasons, we only support public YouTube content." },
+            { q: "Is there a browser extension?", a: "Currently, we focus on providing a perfect web experience that requires no installation." }
+        ]
+    },
+    'tiktok-downloader': {
+        title: 'TikTok Video Downloader Without Watermark - Fast & HD | Doomsdaysnap',
+        desc: 'Download TikTok videos without watermark in HD quality. The best TikTok downloader tool for watermark-free videos on mobile and PC.',
+        h1: 'TikTok Video Downloader',
+        icon: 'fa-tiktok', color: 'text-white', border: 'border-t-[#25F4EE]/40', bg: 'bg-[#25F4EE]/10',
+        longContent: `
+            <div class="prose prose-invert max-w-none">
+                <p class="text-lg text-gray-300 leading-relaxed mb-6">
+                    Tired of TikTok logos ruining your edits? Doomsdaysnap offers a professional-grade solution for downloading TikTok videos without watermarks. Our unique extraction technology identifies the original source file before TikTok applies its overlay, giving you the cleanest possible footage for your own projects or offline viewing.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-[#25F4EE]">
+                        <h3 class="text-xl font-bold mb-3 text-[#25F4EE]">Watermark Free</h3>
+                        <p class="text-gray-400 text-sm">Our most popular feature. Download any public TikTok and receive the clean, original version instantly.</p>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-[#FE2C55]">
+                        <h3 class="text-xl font-bold mb-3 text-[#FE2C55]">Audio Extraction</h3>
+                        <p class="text-gray-400 text-sm">Love a TikTok sound? Use our tool to convert any TikTok video into a high-quality MP3 file in seconds.</p>
+                    </div>
+                </div>
+                <p class="text-gray-400 leading-relaxed">
+                    Social media managers and creators trust Doomsdaysnap for its reliability and speed. Simply copy the link from the TikTok app, paste it here, and our servers will handle the rest. No apps to install, no annoying ads—just pure, high-definition content delivered straight to your device.
+                </p>
+            </div>
+        `,
+        steps: [
+            { icon: 'fa-copy', text: 'Copy TikTok Link', desc: 'Tap Share on the TikTok app and select Copy Link.' },
+            { icon: 'fa-bolt', text: 'Extract Video', desc: 'Paste the link above; our engine removes the watermark instantly.' },
+            { icon: 'fa-check', text: 'Download No-Watermark', desc: 'Save the clean, original-quality video to your device.' }
+        ],
+        faqs: [
+            { q: "Is the video really watermark-free?", a: "Yes, we fetch the original HD source before TikTok's branding is applied." },
+            { q: "Can I download TikTok on iPhone?", a: "Yes, use our website in Safari and the video will save to your Photos or Files app." },
+            { q: "Is there a limit on downloads?", a: "No, there are zero limits. You can download 100s of videos daily for free." },
+            { q: "Can I save TikTok as MP3?", a: "Yes, we provide high-bitrate MP3 download options for every video." },
+            { q: "Is my history saved?", a: "No, your privacy is our priority. We do not track or store your download history." },
+            { q: "Do I need to sign in to TikTok?", a: "No, the tool works perfectly without any TikTok account required." },
+            { q: "What if the video is private?", a: "We can only download public videos. If the account is private, we cannot access the content." },
+            { q: "Is the quality changed?", a: "No, we provide the original file quality as uploaded by the creator." },
+            { q: "Does it work for TikTok Slideshows?", a: "Yes, we can extract the images or the generated video from slideshows." },
+            { q: "Is it safe to use?", a: "100%. We use secure connections and don't require any personal info." }
+        ]
+    },
+    'instagram-downloader': {
+        title: 'Instagram Reels & Video Downloader - Fast & HD | Doomsdaysnap',
+        desc: 'Download Instagram Reels, videos, and IGTV posts instantly. Free HD Instagram downloader for high-quality content extraction.',
+        h1: 'Instagram Video Downloader',
+        icon: 'fa-instagram', color: 'text-pink-500', border: 'border-t-pink-500/40', bg: 'bg-pink-500/10',
+        longContent: `
+            <div class="prose prose-invert max-w-none">
+                <p class="text-lg text-gray-300 leading-relaxed mb-6">
+                    Capture the best of Instagram with Doomsdaysnap. Our Instagram downloader is optimized for Reels, Stories, and Long-form videos. We understand that Instagram's interface can make saving content difficult, so we've built a one-click solution that provides the highest resolution MP4 files available.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
+                    <div class="glass-card p-6 rounded-2xl border-t-2 border-pink-500/50">
+                        <h3 class="text-xl font-bold mb-3 text-pink-400">Reels Downloader</h3>
+                        <p class="text-gray-400 text-sm">Save any Instagram Reel in full HD. Perfect for keeping your favorite creators' content for offline inspiration.</p>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl border-t-2 border-orange-500/50">
+                        <h3 class="text-xl font-bold mb-3 text-orange-400">Story Saver</h3>
+                        <p class="text-gray-400 text-sm">Download public Instagram stories before they disappear. Stay up to date with the latest content easily.</p>
+                    </div>
+                </div>
+                <p class="text-gray-400 leading-relaxed">
+                    Our tool is designed to be as simple as possible. No need to deal with cluttered apps or "log-in to continue" prompts. Instagram content is vibrant and visual; our downloader ensures that every pixel is preserved during the transfer to your device.
+                </p>
+            </div>
+        `,
+        steps: [
+            { icon: 'fa-copy', text: 'Copy Instagram URL', desc: 'Copy the link of the Reel, Story, or Video from Instagram.' },
+            { icon: 'fa-wand-magic-sparkles', text: 'Fetch Content', desc: 'Paste the link above and our engine will grab the high-res file.' },
+            { icon: 'fa-download', text: 'Save to Device', desc: 'Hit Download to save the Instagram video in its highest quality.' }
+        ],
+        faqs: [
+            { q: "Can I download Instagram Reels?", a: "Yes, we support all Reels, Stories, and regular feed videos." },
+            { q: "Does the user know I downloaded?", a: "No, our service is completely anonymous and private." },
+            { q: "Is HD quality maintained?", a: "Absolutely. We fetch the original resolution from Instagram's servers." },
+            { q: "Can I download from private accounts?", a: "No, for safety and legal reasons, only public content is supported." },
+            { q: "Is it safe for my device?", a: "Yes, we use secure SSL and provide direct file links with no malware." },
+            { q: "Can I download multiple videos?", a: "Yes, there is no cooling-off period. Download as much as you want." },
+            { q: "How to save videos to iPad?", a: "Follow the same process as iPhone: use Safari and save to Files or Photos." },
+            { q: "Are Stories supported?", a: "Yes, as long as the story is from a public profile." },
+            { q: "Do you store the videos?", a: "No, we act as a bridge. Videos are fetched and served directly to you." },
+            { q: "What format are the videos?", a: "All videos are saved in the universal MP4 format, playable anywhere." }
+        ]
+    },
+    'twitter-downloader': {
+        title: 'Twitter Video Downloader - Download X Videos HD | Doomsdaysnap',
+        desc: 'Free Twitter (X) video downloader. Save videos and GIFs from Twitter in high-resolution MP4 format quickly and easily.',
+        h1: 'Twitter Video Downloader',
+        icon: 'fa-x-twitter', color: 'text-white', border: 'border-t-white/20', bg: 'bg-white/10',
+        longContent: `
+            <div class="prose prose-invert max-w-none">
+                <p class="text-lg text-gray-300 leading-relaxed mb-6">
+                    X (formerly Twitter) is the pulse of the internet, where breaking news and viral moments happen first. Doomsdaysnap's Twitter Video Downloader allows you to archive those fleeting moments in high definition. We provide multiple resolution options for every tweet, ensuring you can choose between data-saving SD or crystal-clear HD quality.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-gray-400">
+                        <h3 class="text-xl font-bold mb-3 text-white">X GIF Conversion</h3>
+                        <p class="text-gray-400 text-sm">Twitter GIFs are technically served as small video loops. Our tool converts these back into native MP4 files so you can share them across any messaging platform without quality loss.</p>
+                    </div>
+                </div>
+                <p class="text-gray-400 leading-relaxed">
+                    Whether you're looking to save a thread's video or a viral clip from your feed, our X downloader is optimized for speed and reliability. Simply copy the post link, paste it above, and enjoy instant access to your media.
+                </p>
+            </div>
+        `,
+        steps: [
+            { icon: 'fa-copy', text: 'Copy Post Link', desc: 'Tap the Share icon on an X post and select Copy Link.' },
+            { icon: 'fa-magnifying-glass', text: 'Analyze Tweet', desc: 'Paste the link above to extract the video or GIF content.' },
+            { icon: 'fa-file-arrow-down', text: 'Download MP4', desc: 'Choose your desired resolution and save the X video instantly.' }
+        ],
+        faqs: [
+            { q: "Does it work for X (Twitter) GIFs?", a: "Yes, Doomsdaysnap can save X GIFs as high-quality MP4 files." },
+            { q: "Can I download long videos?", a: "Yes, any duration is supported as long as it is a public post." },
+            { q: "Is 1080p resolution available?", a: "We provide the highest possible resolution offered by X for that specific post." },
+            { q: "Do I need to log in to X?", a: "No login is required to use our Twitter downloader." },
+            { q: "Is the service free?", a: "100% free with no hidden charges or premium versions." },
+            { q: "How to save videos on Android?", a: "Paste the link in Chrome, select quality, and it will save to your downloads folder." },
+            { q: "Can I download from private accounts?", a: "No, we cannot access videos protected by privacy settings." },
+            { q: "Are there any size limits?", a: "Currently, we support videos up to 1GB in size." },
+            { q: "Why did my download fail?", a: "The tweet might have been deleted, or the user restricted access. Try another link." },
+            { q: "Is it safe to use?", a: "Yes, we don't ask for any permissions or social media API access." }
+        ]
+    },
+    'facebook-downloader': {
+        title: 'Facebook Video Downloader - Download FB Reels & Videos | Doomsdaysnap',
+        desc: 'The best Facebook video downloader for Reels and public videos. Download Facebook videos in HD quality instantly with Doomsdaysnap.',
+        h1: 'Facebook Video Downloader',
+        icon: 'fa-facebook', color: 'text-blue-500', border: 'border-t-blue-500/40', bg: 'bg-blue-500/10',
+        longContent: `
+            <div class="prose prose-invert max-w-none">
+                <p class="text-lg text-gray-300 leading-relaxed mb-6">
+                    Facebook Reels and Videos contain a massive library of tutorials, entertainment, and memories. Doomsdaysnap provides a seamless way to save these videos directly to your device. We use advanced scraping technology to find the high-bitrate HD mirrors of public Facebook videos.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-blue-600">
+                        <h3 class="text-xl font-bold mb-3 text-blue-400">FB Reels HD</h3>
+                        <p class="text-gray-400 text-sm">Download the latest trending Facebook Reels in crisp 1080p quality with absolute zero quality loss during the process.</p>
+                    </div>
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-blue-300">
+                        <h3 class="text-xl font-bold mb-3 text-blue-300">Facebook Watch Archive</h3>
+                        <p class="text-gray-400 text-sm">Easily save long-form content from Facebook Watch for offline viewing on your commute or at home.</p>
+                    </div>
+                </div>
+                 <p class="text-gray-400 leading-relaxed">
+                    Our Facebook tool is designed for compatibility. Whether the video is on a public page, a group, or a user's timeline, our engine identifies the safest and fastest route to the source file.
+                </p>
+            </div>
+        `,
+        steps: [
+            { icon: 'fa-copy', text: 'Copy FB Link', desc: 'Click Share on any Facebook Video or Reel and select Copy Link.' },
+            { icon: 'fa-server', text: 'Ready HD Link', desc: 'Paste the link above for our engine to identify the HD source mirror.' },
+            { icon: 'fa-circle-check', text: 'Save Video', desc: 'Select HD or SD quality and save it to your local gallery or desktop.' }
+        ],
+        faqs: [
+            { q: "Can I download Facebook Reels?", a: "Yes, we fully support the new Facebook Reels format in HD quality." },
+            { q: "How to download in HD?", a: "Paste the link and look for the 'HD Quality' tag in the results list provided." },
+            { q: "Are private videos supported?", a: "No, we only support public Facebook videos for privacy compliance." },
+            { q: "Is it compatible with Android?", a: "Yes, works perfectly on all Android phones using Chrome or Edge." },
+            { q: "Do I need to install an app?", a: "No, Doomsdaysnap is a 100% web-based tool. No installation needed." },
+            { q: "Can I save long FB videos?", a: "Yes, there are no duration limits for public videos on our platform." },
+            { q: "Is the video quality lowered?", a: "No, we provide the exact same file that Facebook serves to its users." },
+            { q: "Can I download from groups?", a: "Yes, if the group is public, the downloader will work instantly." },
+            { q: "How to save on iPhone?", a: "Use Safari, paste the link, and choose 'Download' when prompt appears." },
+            { q: "Is it free for commercial use?", a: "Please check the original creator's copyright. Our tool is for personal use." }
+        ]
+    },
+    'snapchat-downloader': {
+        title: 'Snapchat Video Downloader - Save Snapchat Spotlight | Doomsdaysnap',
+        desc: 'Download Snapchat Spotlight videos and public stories. Free Snapchat downloader for high-quality video extraction without limits.',
+        h1: 'Snapchat Video Downloader',
+        icon: 'fa-snapchat', color: 'text-yellow-400', border: 'border-t-yellow-400/40', bg: 'bg-yellow-400/10',
+        longContent: `
+             <div class="prose prose-invert max-w-none">
+                <p class="text-lg text-gray-300 leading-relaxed mb-6">
+                    Snapchat Spotlights and Public Stories are ephemeral by design, but some memories deserve to be saved. Doomsdaysnap's Snapchat Downloader allows you to keep those public snaps permanently. By using the official public sharing link, we extract the high-quality MP4 file for you to store safely on your device.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-yellow-400">
+                        <h3 class="text-xl font-bold mb-3 text-yellow-400">Spotlight Extractor</h3>
+                        <p class="text-gray-400 text-sm">Archive the latest viral Snapchat Spotlights in 1080p directly to your device with one click.</p>
+                    </div>
+                </div>
+                <p class="text-gray-400 leading-relaxed">
+                    Our platform respects user privacy; therefore, we only facilitate the download of content intended for public sharing through Snapchat's web portals. No login is required, ensuring your account details remain private.
+                </p>
+            </div>
+        `,
+        steps: [
+            { icon: 'fa-copy', text: 'Share Spotlight', desc: 'On Snapchat, tap the Share icon on a Spotlight and select Copy Link.' },
+            { icon: 'fa-link', text: 'Paste URL', desc: 'Put the link in the search bar above and let us process the Snap.' },
+            { icon: 'fa-save', text: 'Save Snap', desc: 'Download the Spotlight video in its original crisp quality.' }
+        ],
+        faqs: [
+            { q: "Can I save Snapchat Spotlight videos?", a: "Yes! Doomsdaysnap is specifically optimized for Spotlight downloads." },
+            { q: "Is it safe to use?", a: "Yes, we use the legal public sharing API to fetch the videos safely." },
+            { q: "Does Snapchat notify the user?", a: "No, because we access the public URL, no notification is sent." },
+            { q: "What quality are the Snaps?", a: "Most public Spotlights are 1080p, and we provide that exact file." },
+            { q: "Is there a limit?", a: "No, feel free to archive as many public snaps as you wish." },
+            { q: "Can I download private stories?", a: "No, only publicly shared stories and spotlights are accessible." },
+            { q: "Do I need to login?", a: "Never. We do not require any of your Snapchat credentials." },
+            { q: "Does it work on Mac?", a: "Yes, works on any desktop or mobile browser." },
+            { q: "How long does it take?", a: "Usually under 2 seconds for a standard-length snap." },
+            { q: "Is it compatible with iOS?", a: "Yes, Safari on iOS 13+ supports direct downloads flawlessly." }
+        ]
+    },
+    'pinterest-downloader': {
+        title: 'Pinterest Video Downloader - Save Video Pins HD | Doomsdaysnap',
+        desc: 'Download Pinterest Video Pins in high resolution. The easiest way to save video content from Pinterest directly to your device.',
+        h1: 'Pinterest Video Downloader',
+        icon: 'fa-pinterest', color: 'text-red-500', border: 'border-t-red-500/40', bg: 'bg-red-500/10',
+        longContent: `
+            <div class="prose prose-invert max-w-none">
+                <p class="text-lg text-gray-300 leading-relaxed mb-6">
+                    Pinterest is the ultimate source of visual inspiration. With our Pinterest Video Downloader, you can save video pins for your mood boards, creative projects, or offline reference. We extract the direct MP4 links from Pinterest's global CDNs, bypassing the slower interface of the official app for a faster experience.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
+                    <div class="glass-card p-6 rounded-2xl border-l-4 border-red-500">
+                        <h3 class="text-xl font-bold mb-3 text-red-400">Vision Board Plus</h3>
+                        <p class="text-gray-400 text-sm">Download high-quality versions of tutorial and aesthetic video pins for offline inspiration boards.</p>
+                    </div>
+                </div>
+                 <p class="text-gray-400 leading-relaxed">
+                    Never lose track of a helpful Pin again. By saving the video directly to your storage, you can access your favorite Pinterest ideas even without an internet connection.
+                </p>
+            </div>
+        `,
+        steps: [
+            { icon: 'fa-copy', text: 'Copy Pin Link', desc: 'Tap the Share icon on any Video Pin and select Copy Link.' },
+            { icon: 'fa-image', text: 'Fetch Video', desc: 'Paste the Pinterest link above and we will grab the MP4 file.' },
+            { icon: 'fa-download', text: 'Download Pin', desc: 'Save the Pinterest video pin in full HD directly to your device.' }
+        ],
+        faqs: [
+            { q: "Can I save Pinterest Video Pins?", a: "Yes, any public video pin can be downloaded with our tool." },
+            { q: "Is it fast?", a: "Extremely. Most Pinterest videos are processed and ready in under 2 seconds." },
+            { q: "Is the quality good?", a: "Yes, we extract the highest bitrate MP4 resolution available for that pin." },
+            { q: "Does it work on tablet?", a: "Yes, it is fully responsive on all iPad and Android tablets." },
+            { q: "Are image pins supported?", a: "Currently, we focus on Video Pins to ensure the best extraction performance." },
+            { q: "Do I need an account?", a: "No, you can download public pins without even logging into Pinterest." },
+            { q: "Where are videos saved?", a: "Usually in your 'Downloads' folder, depending on your browser settings." },
+            { q: "Can I download from private boards?", a: "No, the tool must be able to 'see' the link publicly to fetch it." },
+            { q: "Is there any software to install?", a: "No, works straight in the browser with no extensions needed." }
+        ]
+    }
+};
+
+const PLATFORM_ROUTES = Object.keys(PLATFORM_SEO_DATA).map(key => `/${key}`);
+
+PLATFORM_ROUTES.forEach(route => {
+    app.get(route, (req, res) => {
+        const platformKey = req.path.replace('/', '');
+        const seo = PLATFORM_SEO_DATA[platformKey];
+
+        if (!seo) {
+            return res.sendFile(path.join(__dirname, 'app.html'));
+        }
+
+        // Read app.html and replace metadata markers
+        fs.readFile(path.join(__dirname, 'app.html'), 'utf8', (err, data) => {
+            if (err) return res.status(500).send('Error loading page');
+
+            let modifiedContent = data;
+            
+            // Replace Title / Meta
+            modifiedContent = modifiedContent
+                .replace(/<title>.*?<\/title>/, `<title>${seo.title}</title>`)
+                .replace(/<meta name="description" content=".*?">/, `<meta name="description" content="${seo.desc}">`)
+                .replace(/<meta property="og:title" content=".*?">/, `<meta property="og:title" content="${seo.title}">`)
+                .replace(/<link rel="canonical" href=".*?">/, `<link rel="canonical" href="https://doomsdaysnap.online${route}">`);
+
+            // Update H1 and Platform Title
+            modifiedContent = modifiedContent.replace(
+                /<h1 id="main-title".*?>.*?<\/h1>/s,
+                `<h1 id="main-title" class="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-4 sm:mb-6 leading-tight">${seo.h1}</h1>`
+            );
+
+            // Hide home-specific grid container on tool pages
+            modifiedContent = modifiedContent.replace('id="home-platform-grid"', 'id="home-platform-grid" style="display:none !important"');
+
+            // Hide tab row as requested for a cleaner look on specific pages
+            // We use a regex to find the div with the specific ID and inject a hidden class or style
+            modifiedContent = modifiedContent.replace(
+                /id="platform-tabs-row"/g,
+                'id="platform-tabs-row" style="display:none !important"'
+            );
+
+            // INJECT STEPS
+            const stepsHtml = `
+                <div class="hidden md:block absolute top-12 left-[15%] right-[15%] h-px bg-gradient-to-r from-purple-500/0 via-purple-500/40 to-pink-500/0"></div>
+                ${seo.steps.map((s, idx) => `
+                    <div class="relative z-10 flex flex-col items-center stagger-item">
+                        <div class="w-24 h-24 rounded-2xl glass-card hover-lift flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+                            <i class="fa-solid ${s.icon} text-4xl text-purple-400"></i>
+                        </div>
+                        <h4 class="text-xl font-bold mb-2">${idx + 1}. ${s.text}</h4>
+                        <p class="text-gray-400 text-sm px-4">${s.desc}</p>
+                    </div>
+                `).join('')}
+            `;
+            modifiedContent = modifiedContent.replace('<!-- TOOL_STEPS -->', stepsHtml);
+
+            // INJECT FAQ
+            const faqHtml = seo.faqs.map(f => `
+                <div class="glass-card rounded-xl overflow-hidden hover-lift stagger-item">
+                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
+                        <span class="font-semibold text-gray-200">${f.q}</span>
+                        <i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i>
+                    </button>
+                    <div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                        ${f.a}
+                    </div>
+                </div>
+            `).join('');
+            modifiedContent = modifiedContent.replace('<!-- TOOL_FAQ -->', faqHtml);
+
+            // INJECT OTHER TOOLS GRID
+            const otherTools = Object.keys(PLATFORM_SEO_DATA)
+                .filter(key => key !== platformKey)
+                .map(key => {
+                    const p = PLATFORM_SEO_DATA[key];
+                    return `
+                        <a href="/${key}" class="glass-card rounded-2xl p-5 hover-lift transition-all duration-300 border-t-2 ${p.border} stagger-item">
+                            <div class="w-10 h-10 rounded-full ${p.bg} flex items-center justify-center mb-4">
+                                <i class="fa-brands ${p.icon} text-xl ${p.color}"></i>
+                            </div>
+                            <h3 class="text-base font-bold mb-1 text-white">${key.split('-')[0].charAt(0).toUpperCase() + key.split('-')[0].slice(1)}</h3>
+                            <p class="text-gray-400 text-xs">${p.desc.split('.')[0]}.</p>
+                        </a>
+                    `;
+                }).join('');
+            modifiedContent = modifiedContent.replace('<!-- TOOL_GRID_ITEMS -->', otherTools);
+
+            // INJECT RICH SEO CONTENT
+            const richHtml = `
+                <div class="flex flex-col gap-12">
+                    <div class="space-y-8">
+                        <div class="flex items-center gap-4 mb-2">
+                             <div class="w-12 h-12 rounded-xl ${seo.bg} flex items-center justify-center shadow-lg">
+                                <i class="fa-brands ${seo.icon} text-2xl ${seo.color}"></i>
+                            </div>
+                            <h2 class="text-3xl md:text-4xl font-extrabold">Professional ${seo.h1.split(' ')[0]} Downloader</h2>
+                        </div>
+                        ${seo.longContent}
+                    </div>
+                    
+                    <!-- Top 3 Features Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        ${seo.faqs.slice(0, 3).map(f => `
+                            <div class="glass-card p-6 rounded-2xl border-b-2 ${seo.border}">
+                                <div class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center mb-4">
+                                    <i class="fa-solid fa-check text-purple-400 text-sm"></i>
+                                </div>
+                                <h4 class="text-white font-bold mb-2">${f.q}</h4>
+                                <p class="text-gray-500 text-sm leading-relaxed">${f.a}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            modifiedContent = modifiedContent.replace('<!-- TOOL_RICH_CONTENT -->', richHtml);
+
+            res.send(modifiedContent);
+        });
+    });
 });
 
 // ─── SEO ──────────────────────────────────────────────────────────────────────
@@ -302,6 +756,7 @@ app.get('/sitemap.xml', (_req, res) => {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${base}/</loc><lastmod>${now}</lastmod><priority>1.0</priority><changefreq>weekly</changefreq></url>
   <url><loc>${base}/app</loc><lastmod>${now}</lastmod><priority>0.9</priority><changefreq>weekly</changefreq></url>
+  ${PLATFORM_ROUTES.map(route => `<url><loc>${base}${route}</loc><lastmod>${now}</lastmod><priority>0.8</priority><changefreq>weekly</changefreq></url>`).join('\n  ')}
 </urlset>`);
 });
 

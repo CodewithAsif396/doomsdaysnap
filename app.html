@@ -4,17 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doomsdaysnap - Download Videos from YouTube, TikTok, Instagram, Facebook, Snapchat & Pinterest</title>
-    <meta name="description" content="Free HD video downloader for YouTube, TikTok, Instagram, Twitter/X, Facebook, Snapchat and Pinterest. No watermark, no sign-up, instant download.">
-    <meta name="keywords" content="video downloader, youtube downloader, tiktok downloader, instagram downloader, facebook video downloader, snapchat downloader, pinterest video downloader, twitter video downloader, hd video downloader, no watermark">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://doomsdaysnap.online/app">
-    <meta property="og:title"       content="Doomsdaysnap — Free Video Downloader for 7 Platforms">
-    <meta property="og:description" content="Download HD videos from YouTube, TikTok, Instagram, Twitter/X, Facebook, Snapchat and Pinterest. No watermark, no sign-up.">
-    <meta property="og:url"         content="https://doomsdaysnap.online/app">
+    <meta name="description" content="Download videos from YouTube, TikTok, Instagram, Twitter/X, Facebook, Snapchat and Pinterest for free in HD & 4K. No watermark, no sign-up, blazing fast. Try Doomsdaysnap now.">
+    <meta name="keywords" content="video downloader, youtube downloader, tiktok downloader, instagram reels downloader, facebook video downloader, snapchat video downloader, pinterest video downloader, twitter video downloader, 4k video downloader, hd video downloader, no watermark downloader, free video downloader, social media downloader, reels downloader, shorts downloader">
+    <meta name="author" content="Doomsdaysnap">
+    <link rel="canonical" href="https://doomsdaysnap.online/">
+
+    <!-- ── JSON-LD Structured Data ──────────────────────────────────────── -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "name": "Doomsdaysnap",
+          "url": "https://doomsdaysnap.online",
+          "description": "Download videos from YouTube, TikTok, Instagram, Twitter/X, Facebook, Snapchat and Pinterest in HD & 4K for free. No watermark, no sign-up required.",
+          "applicationCategory": "MultimediaApplication",
+          "operatingSystem": "All",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+          "featureList": [
+            "4K video download", "HD video download", "No watermark",
+            "YouTube downloader", "TikTok downloader without watermark",
+            "Instagram Reels downloader", "Twitter/X video downloader",
+            "Facebook video downloader", "Snapchat video downloader",
+            "Pinterest video downloader", "MP3 audio extraction"
+          ]
+        },
+        {
+          "@type": "Organization",
+          "name": "Doomsdaysnap",
+          "url": "https://doomsdaysnap.online",
+          "logo": "https://doomsdaysnap.online/logo.png"
+        }
+      ]
+    }
+    </script>
+
+    <meta property="og:title"       content="Doomsdaysnap — Ultimate Free Video Downloader for 7 Platforms">
+    <meta property="og:description" content="Download HD & 4K videos from YouTube, TikTok, Instagram, Twitter/X, Facebook, Snapchat and Pinterest. No watermark, no sign-up.">
+    <meta property="og:url"         content="https://doomsdaysnap.online/">
     <meta property="og:type"        content="website">
     <meta property="og:image"       content="https://doomsdaysnap.online/og-image.jpg">
     <meta name="twitter:card"        content="summary_large_image">
-    <meta name="twitter:title"       content="Doomsdaysnap — Free Video Downloader">
+    <meta name="twitter:title"       content="Doomsdaysnap — Ultimate Free Video Downloader">
     <meta name="twitter:description" content="Download from YouTube, TikTok, Instagram, Facebook, Snapchat & Pinterest. Free, HD, no watermark.">
     <meta name="twitter:image"       content="https://doomsdaysnap.online/og-image.jpg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -96,6 +128,51 @@
         @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(110%); opacity: 0; } }
         .toast-in  { animation: slideIn  0.3s ease forwards; }
         .toast-out { animation: slideOut 0.3s ease forwards; }
+
+        /* ── Reveal Animations ── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px) scale(0.98);
+            transition: opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1), 
+                        transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+            will-change: opacity, transform;
+        }
+
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Staggered Reveal Logic */
+        .stagger-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1), 
+                        transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .stagger-item.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Enhanced Hover Magic */
+        .hover-lift {
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), 
+                        box-shadow 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+                        border-color 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .hover-lift:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(168, 85, 247, 0.4);
+            box-shadow: 0 20px 40px -15px rgba(168, 85, 247, 0.25);
+        }
+
+        #platform-cycle {
+            display: inline-block;
+            min-width: 150px;
+            text-align: left;
+        }
     </style>
 </head>
 <body class="antialiased relative min-h-screen flex flex-col font-sans">
@@ -126,23 +203,54 @@
                     <span class="text-xl font-bold tracking-tight">Doomsday<span class="gradient-text">snap</span></span>
                 </a>
                 <!-- Desktop links -->
-                <div class="hidden md:flex items-center gap-8">
+                <div class="hidden md:flex items-center gap-6">
                     <a href="/" class="text-gray-400 hover:text-white text-sm font-medium transition-colors">Home</a>
+                    <!-- Platforms dropdown -->
+                    <div class="relative group">
+                        <button class="flex items-center gap-1.5 text-gray-400 hover:text-white text-sm font-medium transition-colors">
+                            Platforms <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </button>
+                        <div class="absolute top-full right-0 mt-2 w-56 glass-card rounded-xl border border-white/10 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 shadow-xl shadow-black/50">
+                            <a href="/youtube-downloader"   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-youtube text-red-500 w-4"></i> YouTube Downloader</a>
+                            <a href="/tiktok-downloader"    class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-tiktok text-white w-4"></i> TikTok Downloader</a>
+                            <a href="/instagram-downloader" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-instagram text-pink-400 w-4"></i> Instagram Downloader</a>
+                            <a href="/twitter-downloader"   class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-x-twitter text-white w-4"></i> Twitter/X Downloader</a>
+                            <a href="/facebook-downloader"  class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-facebook text-blue-400 w-4"></i> Facebook Downloader</a>
+                            <a href="/snapchat-downloader"  class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-snapchat text-yellow-300 w-4"></i> Snapchat Downloader</a>
+                            <a href="/pinterest-downloader" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-pinterest text-red-500 w-4"></i> Pinterest Downloader</a>
+                        </div>
+                    </div>
                     <a href="#how-it-works" class="text-gray-400 hover:text-white text-sm font-medium transition-colors">How It Works</a>
                     <a href="#faq" class="text-gray-400 hover:text-white text-sm font-medium transition-colors">FAQ</a>
                 </div>
-                <!-- Mobile menu button -->
-                <button id="mobile-menu-btn" class="md:hidden text-gray-400 hover:text-white focus:outline-none p-2">
-                    <i class="fa-solid fa-bars text-xl"></i>
+                <!-- Hamburger button (mobile + tablet) -->
+                <button id="mobile-menu-btn" class="md:hidden text-gray-400 hover:text-white focus:outline-none p-2 rounded-lg hover:bg-white/5 transition-colors" aria-label="Open menu">
+                    <i class="fa-solid fa-bars text-xl" id="hamburger-icon"></i>
                 </button>
             </div>
         </div>
         <!-- Mobile dropdown -->
-        <div id="mobile-menu" class="hidden md:hidden px-4 pb-4 bg-black/95 border-t border-white/5">
-            <div class="flex flex-col gap-4 pt-4">
-                <a href="/" class="mobile-link text-gray-300 hover:text-white font-medium">Home</a>
-                <a href="#how-it-works" class="mobile-link text-gray-300 hover:text-white font-medium">How It Works</a>
-                <a href="#faq" class="mobile-link text-gray-300 hover:text-white font-medium">FAQ</a>
+        <div id="mobile-menu" class="hidden md:hidden bg-black/98 border-t border-white/5" style="max-height:80vh;overflow-y:auto">
+            <div class="px-4 py-4 flex flex-col gap-1">
+                <a href="/" class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 font-medium transition-colors">
+                    <i class="fa-solid fa-house w-5 text-center text-purple-400"></i> Home
+                </a>
+                <div class="h-px bg-white/5 my-1"></div>
+                <p class="px-3 py-1.5 text-[11px] font-semibold text-gray-500 uppercase tracking-widest">Downloaders</p>
+                <a href="/youtube-downloader"   class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-youtube text-red-500 w-5 text-center"></i> YouTube Downloader</a>
+                <a href="/tiktok-downloader"    class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-tiktok text-white w-5 text-center"></i> TikTok Downloader</a>
+                <a href="/instagram-downloader" class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-instagram text-pink-400 w-5 text-center"></i> Instagram Downloader</a>
+                <a href="/twitter-downloader"   class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-x-twitter text-white w-5 text-center"></i> Twitter/X Downloader</a>
+                <a href="/facebook-downloader"  class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-facebook text-blue-400 w-5 text-center"></i> Facebook Downloader</a>
+                <a href="/snapchat-downloader"  class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-snapchat text-yellow-300 w-5 text-center"></i> Snapchat Downloader</a>
+                <a href="/pinterest-downloader" class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors"><i class="fa-brands fa-pinterest text-red-500 w-5 text-center"></i> Pinterest Downloader</a>
+                <div class="h-px bg-white/5 my-1"></div>
+                <a href="#how-it-works" class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+                    <i class="fa-solid fa-circle-info w-5 text-center text-purple-400"></i> How It Works
+                </a>
+                <a href="#faq" class="mobile-link flex items-center gap-3 px-3 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
+                    <i class="fa-solid fa-circle-question w-5 text-center text-purple-400"></i> FAQ
+                </a>
             </div>
         </div>
     </nav>
@@ -160,12 +268,13 @@
                 Free &amp; Unlimited Video Downloads
             </div>
 
-            <h1 class="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-4 sm:mb-6 leading-tight">
-                Download Any Video,<br><span class="gradient-text">Instantly.</span>
+            <h1 id="main-title" class="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-4 sm:mb-6 leading-tight">
+                Download Any Video <br>
+                <span id="platform-cycle" class="gradient-text italic">Without Limits.</span>
             </h1>
             <p class="text-base sm:text-lg md:text-xl text-gray-400 mb-8 sm:mb-10 max-w-2xl mx-auto px-2">
-                The fastest way to save high-quality videos from your favourite social platforms.
-                No watermarks, no sign-up required.
+                The fastest way to save high-quality media from YouTube, TikTok, Instagram, Twitter/X, Facebook, Snapchat, and Pinterest. 
+                Zero watermarks, 4K support, and completely secure.
             </p>
 
             <!-- ── Platform Tabs ──────────────────────────────────────────────
@@ -178,7 +287,7 @@
             <div class="max-w-3xl mx-auto mb-6">
                 <div class="relative">
                     <!-- Scrollable tab strip -->
-                    <div class="flex p-1.5 glass-card rounded-2xl relative overflow-x-auto scrollbar-hide" id="platform-tabs"
+                    <div class="flex p-1.5 glass-card rounded-2xl relative overflow-x-auto scrollbar-hide" id="platform-tabs-row"
                          style="-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory">
                         <!-- Sliding indicator — JS sets left/width in pixels via getBoundingClientRect() -->
                         <div id="tab-indicator"
@@ -231,7 +340,7 @@
             </div>
 
             <!-- URL Input -->
-            <div class="relative max-w-3xl mx-auto mb-4 group">
+            <div id="downloader-input-section" class="relative max-w-3xl mx-auto mb-4 group">
                 <div id="input-glow" class="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-700"></div>
                 <div id="input-box" class="relative flex flex-col sm:flex-row glass-card rounded-2xl p-2 items-center gap-2">
                     <div class="px-3 text-gray-500 hidden sm:block"><i id="input-icon" class="fa-brands fa-youtube"></i></div>
@@ -257,21 +366,18 @@
                 </div>
             </div>
 
-            <!-- Mobile paste row -->
-            <div class="flex sm:hidden justify-center gap-3 mb-2">
-                <button id="paste-btn-mobile" class="flex items-center gap-2 text-sm bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl text-gray-400 hover:text-white transition-colors">
-                    <i class="fa-regular fa-clipboard"></i> Paste Link
-                </button>
-                <button id="sample-btn-mobile" class="flex items-center gap-2 text-sm bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl text-gray-400 hover:text-white transition-colors">
-                    <i class="fa-solid fa-flask text-[10px]"></i> Sample
-                </button>
+
+
+            <!-- ── Home Page Platform Grid (Redirects) ── -->
+            <div id="home-platform-grid" class="mt-16 sm:mt-24">
+                <!-- HOME_PLATFORM_GRID -->
             </div>
 
             <p class="text-xs text-gray-600 mt-2">Supports YouTube, TikTok, Instagram, Twitter/X, Facebook, Snapchat, Pinterest &amp; more</p>
         </section>
 
         <!-- ── Loading HUD ── -->
-        <section id="loading-area" class="max-w-lg mx-auto px-4 mb-20 hidden text-center">
+        <section id="loading-area" class="max-w-lg mx-auto px-4 mb-8 hidden text-center">
             <div class="glass-card rounded-3xl p-8 md:p-12 relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-white/5">
                     <div id="loader-progress" class="h-full bg-gradient-to-r from-purple-500 to-pink-500 w-0 transition-all duration-500 ease-out"></div>
@@ -301,7 +407,7 @@
         </section>
 
         <!-- ── Error State ── -->
-        <section id="error-area" class="max-w-lg mx-auto px-4 mb-20 hidden text-center animate-fade-in">
+        <section id="error-area" class="max-w-lg mx-auto px-4 mb-8 hidden text-center animate-fade-in">
             <div class="glass-card rounded-3xl p-8 border border-red-500/20">
                 <div class="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-5">
                     <i class="fa-solid fa-circle-exclamation text-2xl text-red-400"></i>
@@ -315,7 +421,7 @@
         </section>
 
         <!-- ── Result Area ── -->
-        <section id="result-area" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 hidden animate-fade-in">
+        <section id="result-area" class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 hidden animate-fade-in">
             <div class="glass-card rounded-3xl p-6 md:p-8">
                 <div class="flex flex-col md:flex-row gap-8">
                     <!-- Thumbnail -->
@@ -351,150 +457,95 @@
             </div>
         </section>
 
-        <!-- ── Supported Platforms ── -->
-        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold mb-3">Supported Platforms</h2>
-                <p class="text-gray-400">Download from your favourite social networks, seamlessly.</p>
+        <!-- ── SEO Rich Content Section ── -->
+        <section id="tool-details" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 scroll-mt-20">
+            <!-- TOOL_RICH_CONTENT -->
+        </section>
+
+        <!-- ── Other Tools Grid (Cross-Linking) ── -->
+        <section id="more-tools" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-white/5">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-bold mb-3 reveal">Discover More Tools</h2>
+                <p class="text-gray-400 reveal delay-100">The ultimate toolkit for content creators. No limits, no sign-up, just total freedom.</p>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4">
-                <div class="glass-card rounded-2xl p-5 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-[#25F4EE]/40">
-                    <div class="w-10 h-10 rounded-full bg-[#25F4EE]/10 flex items-center justify-center mb-4">
-                        <i class="fa-brands fa-tiktok text-xl text-white drop-shadow-[0_0_8px_rgba(37,244,238,0.8)]"></i>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 stagger-reveal" id="other-tools-grid">
+                <!-- TOOL_GRID_ITEMS -->
+            </div>
+        </section>
+
+        <!-- ── Why Choose Us ── -->
+        <section id="why-choose" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 border-t border-white/5">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold mb-3 reveal">Why Choose Doomsdaysnap?</h2>
+                <p class="text-gray-400 max-w-xl mx-auto reveal delay-100">Designed for speed, privacy, and maximum video quality across every platform.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-reveal">
+                <div class="glass-card p-8 rounded-2xl hover-lift stagger-item">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-gem text-2xl text-purple-400"></i>
                     </div>
-                    <h3 class="text-base font-bold mb-1 text-white">TikTok</h3>
-                    <p class="text-gray-400 text-xs">Download TikTok videos in original quality without watermarks.</p>
+                    <h3 class="text-xl font-bold mb-3">Original 4K Quality</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">We pull direct streams from source servers, ensuring you get the absolute highest resolution available, up to 4K / 1080p FHD.</p>
                 </div>
-                <div class="glass-card rounded-2xl p-5 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-red-500/40">
-                    <div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-                        <i class="fa-brands fa-youtube text-xl text-red-500 drop-shadow-[0_0_8px_rgba(255,0,0,0.8)]"></i>
+                <div class="glass-card p-8 rounded-2xl hover-lift stagger-item">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-droplet-slash text-2xl text-purple-400"></i>
                     </div>
-                    <h3 class="text-base font-bold mb-1 text-white">YouTube</h3>
-                    <p class="text-gray-400 text-xs">Save Shorts &amp; Videos up to 4K, or extract audio as MP3.</p>
+                    <h3 class="text-xl font-bold mb-3">No Watermarks</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Tired of bouncing logos? Doomsdaysnap strips out all visual watermarks so your videos look pristine for sharing and editing.</p>
                 </div>
-                <div class="glass-card rounded-2xl p-5 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-pink-500/40">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-[#fd5949]/20 to-[#d6249f]/20 flex items-center justify-center mb-4">
-                        <i class="fa-brands fa-instagram text-xl" style="background:linear-gradient(135deg,#fd5949,#d6249f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent"></i>
+                <div class="glass-card p-8 rounded-2xl hover-lift stagger-item">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-bolt text-2xl text-purple-400"></i>
                     </div>
-                    <h3 class="text-base font-bold mb-1 text-white">Instagram</h3>
-                    <p class="text-gray-400 text-xs">Fetch Reels, Stories, and IGTV videos directly to your device.</p>
+                    <h3 class="text-xl font-bold mb-3">Lightning Fast</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Powered by our advanced proxy CDN system, our engine extracts and serves videos to your device in record time without the lag.</p>
                 </div>
-                <div class="glass-card rounded-2xl p-5 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-white/20">
-                    <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-4">
-                        <i class="fa-brands fa-x-twitter text-xl text-white"></i>
+                <div class="glass-card p-8 rounded-2xl hover-lift stagger-item">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-shield-halved text-2xl text-purple-400"></i>
                     </div>
-                    <h3 class="text-base font-bold mb-1 text-white">X (Twitter)</h3>
-                    <p class="text-gray-400 text-xs">Grab high-quality videos and GIFs from X with a single click.</p>
+                    <h3 class="text-xl font-bold mb-3">100% Secure</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">We never store or log the videos you download. Everything is processed in real time and sent directly and privately to your device.</p>
                 </div>
-                <div class="glass-card rounded-2xl p-5 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-blue-500/40">
-                    <div class="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center mb-4">
-                        <i class="fa-brands fa-facebook text-xl text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.8)]"></i>
+                <div class="glass-card p-8 rounded-2xl hover-lift stagger-item">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-mobile-screen text-2xl text-purple-400"></i>
                     </div>
-                    <h3 class="text-base font-bold mb-1 text-white">Facebook</h3>
-                    <p class="text-gray-400 text-xs">Download public Facebook videos and Reels in HD quality.</p>
+                    <h3 class="text-xl font-bold mb-3">Works Everywhere</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">No app to install. Doomsdaysnap runs in any modern browser—desktop, tablet or mobile, iOS or Android, it just works.</p>
                 </div>
-                <div class="glass-card rounded-2xl p-5 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-yellow-400/40">
-                    <div class="w-10 h-10 rounded-full bg-yellow-400/10 flex items-center justify-center mb-4">
-                        <i class="fa-brands fa-snapchat text-xl text-yellow-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]"></i>
+                <div class="glass-card p-8 rounded-2xl hover-lift stagger-item">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-music text-2xl text-purple-400"></i>
                     </div>
-                    <h3 class="text-base font-bold mb-1 text-white">Snapchat</h3>
-                    <p class="text-gray-400 text-xs">Save public Spotlight &amp; Story videos instantly.</p>
-                </div>
-                <div class="glass-card rounded-2xl p-5 hover:-translate-y-2 transition-transform duration-300 border-t-2 border-t-red-500/40">
-                    <div class="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
-                        <i class="fa-brands fa-pinterest text-xl text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]"></i>
-                    </div>
-                    <h3 class="text-base font-bold mb-1 text-white">Pinterest</h3>
-                    <p class="text-gray-400 text-xs">Download Pinterest video pins in full quality.</p>
+                    <h3 class="text-xl font-bold mb-3">Audio Extraction</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Extract MP3 audio from any YouTube video. Perfect for saving podcasts, lectures, and music to listen offline anywhere.</p>
                 </div>
             </div>
         </section>
 
         <!-- ── How It Works ── -->
-        <section id="how-it-works" class="py-20">
+        <section id="how-it-works" class="py-10 border-t border-white/5">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="text-center mb-16">
-                    <h2 class="text-3xl font-bold mb-3">How It Works</h2>
-                    <p class="text-gray-400 max-w-xl mx-auto">Three simple steps to save any video.</p>
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-3 reveal">How It Works</h2>
+                    <p class="text-gray-400 max-w-xl mx-auto reveal delay-100">Don't blink. Our zero-delay extraction engine works faster than you can hit paste.</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative text-center">
-                    <div class="hidden md:block absolute top-12 left-[15%] right-[15%] h-px bg-gradient-to-r from-purple-500/0 via-purple-500/40 to-pink-500/0"></div>
-                    <div class="relative z-10 flex flex-col items-center">
-                        <div class="w-24 h-24 rounded-2xl glass-card flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
-                            <i class="fa-solid fa-copy text-4xl text-purple-400"></i>
-                        </div>
-                        <h4 class="text-xl font-bold mb-2">1. Paste Link</h4>
-                        <p class="text-gray-400 text-sm px-4">Copy the video URL from your social app and paste it into the search box above.</p>
-                    </div>
-                    <div class="relative z-10 flex flex-col items-center">
-                        <div class="w-24 h-24 rounded-2xl glass-card flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(236,72,153,0.2)]">
-                            <i class="fa-solid fa-sliders text-4xl text-pink-400"></i>
-                        </div>
-                        <h4 class="text-xl font-bold mb-2">2. Choose Quality</h4>
-                        <p class="text-gray-400 text-sm px-4">Our engine fetches all available formats — pick the resolution that suits you.</p>
-                    </div>
-                    <div class="relative z-10 flex flex-col items-center">
-                        <div class="w-24 h-24 rounded-2xl glass-card flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
-                            <i class="fa-solid fa-circle-down text-4xl text-purple-400"></i>
-                        </div>
-                        <h4 class="text-xl font-bold mb-2">3. Download</h4>
-                        <p class="text-gray-400 text-sm px-4">Hit Download and the file goes straight to your device. No storage on our end.</p>
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative text-center stagger-reveal">
+                    <!-- TOOL_STEPS -->
                 </div>
             </div>
         </section>
 
         <!-- ── FAQ ── -->
-        <section id="faq" class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold mb-3">Frequently Asked Questions</h2>
+        <section id="faq" class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-bold mb-3 reveal">Frequently Asked Questions</h2>
+                <p class="text-gray-400 reveal delay-100">Total transparency. No catch, no gatekeeping—just answers to every question you have.</p>
             </div>
-            <div class="space-y-3" id="faq-list">
-                <div class="glass-card rounded-xl overflow-hidden">
-                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
-                        <span class="font-semibold">Are TikTok videos downloaded without a watermark?</span>
-                        <i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i>
-                    </button>
-                    <div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed">
-                        Yes! Our downloader fetches the original source video, completely watermark-free.
-                    </div>
-                </div>
-                <div class="glass-card rounded-xl overflow-hidden">
-                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
-                        <span class="font-semibold">Is Doomsdaysnap completely free?</span>
-                        <i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i>
-                    </button>
-                    <div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed">
-                        Absolutely. Doomsdaysnap is 100% free with no hidden fees or subscriptions.
-                    </div>
-                </div>
-                <div class="glass-card rounded-xl overflow-hidden">
-                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
-                        <span class="font-semibold">Does it work on mobile (iOS &amp; Android)?</span>
-                        <i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i>
-                    </button>
-                    <div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed">
-                        Yes — fully web-based, works on Safari, Chrome, and any modern mobile browser.
-                    </div>
-                </div>
-                <div class="glass-card rounded-xl overflow-hidden">
-                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
-                        <span class="font-semibold">Do you store the videos I download?</span>
-                        <i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i>
-                    </button>
-                    <div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed">
-                        No. Videos are streamed directly from the source to your device. Nothing is saved on our servers.
-                    </div>
-                </div>
-                <div class="glass-card rounded-xl overflow-hidden">
-                    <button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none">
-                        <span class="font-semibold">Why is the video not downloading?</span>
-                        <i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i>
-                    </button>
-                    <div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed">
-                        Private videos, age-restricted content, and geo-blocked videos cannot be downloaded. Make sure the link is publicly accessible and try again.
-                    </div>
-                </div>
+            <div class="space-y-3 stagger-reveal" id="faq-list">
+                <!-- TOOL_FAQ -->
             </div>
         </section>
 
@@ -577,16 +628,64 @@
         let isLoading       = false;
 
         // ── Mobile Menu ──────────────────────────────────────────────────────
+        var hamburgerIcon = document.getElementById('hamburger-icon');
         mobileBtn.addEventListener('click', function () {
+            var isOpen = !mobileMenu.classList.contains('hidden');
             mobileMenu.classList.toggle('hidden');
+            // Swap bars ↔ xmark
+            hamburgerIcon.className = isOpen ? 'fa-solid fa-bars text-xl' : 'fa-solid fa-xmark text-xl';
         });
         document.querySelectorAll('.mobile-link').forEach(function (l) {
-            l.addEventListener('click', function () { mobileMenu.classList.add('hidden'); });
+            l.addEventListener('click', function () {
+                mobileMenu.classList.add('hidden');
+                hamburgerIcon.className = 'fa-solid fa-bars text-xl';
+            });
+
+            // Close menu when clicking links
+            document.querySelectorAll('.mobile-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    mobileMenu.classList.add('hidden');
+                    hamburgerIcon.className = 'fa-solid fa-bars text-xl';
+                });
+            });
         });
+
+        // ── Auto-select tab from URL path (/youtube-downloader, etc.) ────────
+        var pathPlatformMap = {
+            'youtube-downloader':   'youtube',
+            'tiktok-downloader':    'tiktok',
+            'instagram-downloader': 'instagram',
+            'twitter-downloader':   'twitter',
+            'facebook-downloader':  'facebook',
+            'snapchat-downloader':  'snapchat',
+            'pinterest-downloader': 'pinterest',
+        };
+        var pathSlug = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
+        var pathPlatform = pathPlatformMap[pathSlug];
+        if (pathPlatform) {
+            currentPlatform = pathPlatform;
+            // Update H1 for SEO tool page
+            var mainTitle = document.getElementById('main-title');
+            if (mainTitle) {
+                var toolNames = {
+                    'youtube':   'YouTube Video<br><span class="gradient-text">Downloader</span>',
+                    'tiktok':    'TikTok Video<br><span class="gradient-text">Downloader</span>',
+                    'instagram': 'Instagram Video<br><span class="gradient-text">Downloader</span>',
+                    'twitter':   'Twitter Video<br><span class="gradient-text">Downloader</span>',
+                    'facebook':  'Facebook Video<br><span class="gradient-text">Downloader</span>',
+                    'snapchat':  'Snapchat Tool<br><span class="gradient-text">Downloader</span>',
+                    'pinterest': 'Pinterest Tool<br><span class="gradient-text">Downloader</span>',
+                };
+                if (toolNames[pathPlatform]) {
+                    mainTitle.innerHTML = toolNames[pathPlatform];
+                }
+            }
+        }
 
         window.addEventListener('scroll', function() {
             if (!mobileMenu.classList.contains('hidden')) {
                 mobileMenu.classList.add('hidden');
+                hamburgerIcon.className = 'fa-solid fa-bars text-xl';
             }
         });
 
@@ -724,6 +823,13 @@
                 switchTab(tab.dataset.platform, parseInt(tab.dataset.index, 10));
             });
         });
+
+        // ── Initial tab activation (URL-path or default youtube) ─────────────
+        (function () {
+            var initPlatform = currentPlatform; // may be set from path detection above
+            var initTab = Array.from(tabs).find(function (t) { return t.dataset.platform === initPlatform; });
+            if (initTab) switchTab(initPlatform, parseInt(initTab.dataset.index, 10));
+        })();
 
         // ── URL Auto-Detect ──────────────────────────────────────────────────
         // When the user pastes or types a URL, we match its domain to auto-switch
@@ -1002,6 +1108,73 @@
         // ── Enter Key ────────────────────────────────────────────────────────
         urlInput.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') downloadBtn.click();
+        });
+
+        // ── Animated Text Cycle ──────────────────────────────────────────────
+        const cycleElement = document.getElementById('platform-cycle');
+        if (cycleElement) {
+            const platforms = ['YouTube', 'TikTok', 'Instagram', 'Twitter/X', 'Facebook', 'Snapchat', 'Pinterest'];
+            let currentIdx = 0;
+            
+            setInterval(() => {
+                currentIdx = (currentIdx + 1) % platforms.length;
+                cycleElement.style.opacity = '0';
+                cycleElement.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    cycleElement.textContent = platforms[currentIdx];
+                    cycleElement.style.opacity = '1';
+                    cycleElement.style.transform = 'translateY(0)';
+                }, 400);
+            }, 3000);
+        }
+
+        // ── Scroll Reveal Observer ───────────────────────────────────────────
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    if (entry.target.classList.contains('stagger-reveal')) {
+                        // Handle staggered children
+                        const items = entry.target.querySelectorAll('.stagger-item, .glass-card, .faq-item, #other-tools-grid > a');
+                        items.forEach((item, index) => {
+                            setTimeout(() => {
+                                item.classList.add('active');
+                                item.style.opacity = '1';
+                                item.style.transform = 'translateY(0)';
+                            }, index * 100);
+                        });
+                    } else {
+                        entry.target.classList.add('active');
+                    }
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        // Target normal reveals
+        document.querySelectorAll('.reveal, section h2, section h3').forEach(el => {
+            el.classList.add('reveal');
+            revealObserver.observe(el);
+        });
+
+        // Target stagger containers
+        document.querySelectorAll('.stagger-reveal').forEach(el => {
+            revealObserver.observe(el);
+        });
+
+        // ── Subtle Background Parallax ──────────────────────────────────────
+        window.addEventListener('scroll', () => {
+            const blobs = document.querySelectorAll('.blob');
+            const scrolled = window.pageYOffset;
+            blobs.forEach((blob, i) => {
+                const speed = 0.1 + (i * 0.05);
+                blob.style.transform = `translateY(${scrolled * speed}px)`;
+            });
         });
 
     }); // end DOMContentLoaded

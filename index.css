@@ -139,6 +139,7 @@ h1, h2, h3, h4, h5, h6 {
     border: none;
     cursor: pointer;
     box-shadow: 0 10px 20px rgba(168, 85, 247, 0.2);
+    white-space: nowrap;
 }
 
 .btn-primary:hover {
@@ -267,5 +268,25 @@ section {
     .glass-card[style*="position:relative"] { margin-top: 24px; }
 
     /* nav logo text sizing */
-    .logo { font-size: 1.2rem; }
+    .logo { 
+        font-size: 1.1rem; 
+        gap: 6px;
+    }
+    .logo-icon {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* Logo specific fix to prevent wrapping */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: white;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
