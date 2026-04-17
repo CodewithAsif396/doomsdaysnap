@@ -1,25 +1,30 @@
 const BaseProvider = require('./BaseProvider');
-const { getRandomUA } = require('../utils/userAgent');
+const browserScraper = require('../utils/browserScraper');
 
 class FacebookProvider extends BaseProvider {
     async getInfo(url) {
-        const uaData = getRandomUA();
-        
-        // Facebook CDN requires a real browser UA + referer to serve video metadata
+        console.log('[Facebook] Attempting high-quality browser extraction...');
+        const result = await browserScraper.extractFacebook(url);
+
+        if (result) {
+            return {
+                title:     result.title,
+                thumbnail: result.thumbnail,
+                duration:  '0:00',
+                formats:   result.formats.map(f => ({
+                    height: f.height,
+                    ext:    f.ext,
+                    url:    f.url, // Note: We return direct URL for browser extraction
+                    size:   null,
+                })),
+                provider:  'facebook',
+            };
+        }
+
+        // Fallback to BaseProvider (yt-dlp) if browser fails
+        console.log('[Facebook] Browser extraction failed, falling back to yt-dlp...');
         const output = await this.executeYtdlp(url, {
-            userAgent: uaData.ua,
             referer: 'https://www.facebook.com/',
-            addHeader: [
-                `sec-ch-ua: ${uaData.clientHints}`,
-                `sec-ch-ua-mobile: ${uaData.mobile || '?0'}`,
-                `sec-ch-ua-platform: ${uaData.platform}`,
-                'sec-fetch-dest: empty',
-                'sec-fetch-mode: cors',
-                'sec-fetch-site: same-origin',
-                'origin:https://www.facebook.com',
-                'accept: */*',
-                'accept-language: en-US,en;q=0.9',
-            ],
         });
 
         return {

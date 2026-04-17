@@ -1,33 +1,36 @@
 const BaseProvider = require('./BaseProvider');
-const { getRandomUA } = require('../utils/userAgent');
+const browserScraper = require('../utils/browserScraper');
 
 class SocialProvider extends BaseProvider {
     async getInfo(url) {
         const isSnapchat  = url.includes('snapchat.com') || url.includes('t.snapchat.com');
         const isPinterest = url.includes('pinterest.com') || url.includes('pin.it');
 
-        const uaData = getRandomUA();
-        let extraArgs = {
-            userAgent: uaData.ua,
-            addHeader: [
-                `sec-ch-ua: ${uaData.clientHints}`,
-                `sec-ch-ua-mobile: ${uaData.mobile || '?0'}`,
-                `sec-ch-ua-platform: ${uaData.platform}`,
-                'sec-fetch-dest: empty',
-                'sec-fetch-mode: cors',
-                'sec-fetch-site: same-origin',
-                'accept: */*',
-                'accept-language: en-US,en;q=0.9',
-            ]
-        };
+        if (isSnapchat || isPinterest) {
+            console.log(`[Social] Attempting browser extraction for ${isSnapchat ? 'Snapchat' : 'Pinterest'}...`);
+            const result = isSnapchat 
+                ? await browserScraper.extractSnapchat(url)
+                : await browserScraper.extractPinterest(url);
 
-        if (isSnapchat) {
-            extraArgs.referer = 'https://www.snapchat.com/';
-        } else if (isPinterest) {
-            extraArgs.referer = 'https://www.pinterest.com/';
+            if (result) {
+                return {
+                    title:     result.title,
+                    thumbnail: result.thumbnail,
+                    duration:  '0:00',
+                    formats:   result.formats.map(f => ({
+                        height: f.height,
+                        ext:    f.ext,
+                        url:    f.url,
+                        size:   null,
+                    })),
+                    provider:  isSnapchat ? 'snapchat' : 'pinterest',
+                };
+            }
         }
 
-        const output = await this.executeYtdlp(url, extraArgs);
+        // Fallback for generic or if browser fails
+        console.log('[Social] Browser extraction failed or generic link, using yt-dlp fallback...');
+        const output = await this.executeYtdlp(url);
 
         const provider = isSnapchat  ? 'snapchat'
                        : isPinterest ? 'pinterest'

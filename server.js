@@ -11,6 +11,7 @@ const { getTikTokCdnUrl } = require('./utils/tiktokBrowser');
 const { getRandomUA }     = require('./utils/userAgent');
 
 const ffmpegPath = require('ffmpeg-static');
+const browserScraper = require('./utils/browserScraper');
 
 
 // ── Provider imports — one file per platform ──────────────────────────────────
@@ -1026,6 +1027,24 @@ app.get('/api/download', rateLimit, async (req, res) => {
                 'Sec-CH-UA-Platform': uaData.platform
             };
 
+            // Try browser-based resolution first (most reliable for FB/Pin/Snap)
+            console.log(`[DOWNLOAD] ${isFacebook ? 'FB' : (isSnapchat ? 'Snap' : 'Pin')} → browser-based resolution`);
+            const browserResult = isFacebook ? await browserScraper.extractFacebook(safeUrl)
+                                : (isSnapchat ? await browserScraper.extractSnapchat(safeUrl)
+                                : await browserScraper.extractPinterest(safeUrl));
+
+            if (browserResult && browserResult.formats.length > 0) {
+                // Find matching quality or best available
+                const target = browserResult.formats.find(f => f.height === type) || browserResult.formats[0];
+                console.log(`[DOWNLOAD] result found via browser: ${target.url.slice(0, 60)}`);
+                const ok = await pipeCdnUrl(target.url, res, req, {
+                    'User-Agent': uaData.ua,
+                    'Referer': referer
+                });
+                if (ok) return;
+            }
+
+            console.log('[DOWNLOAD] Browser resolution failed/skipped, falling back to yt-dlp...');
             await tryDirectThenMerge(safeUrl, format, res, req, extraArgs, cdnHeaders);
 
         } else {

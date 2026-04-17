@@ -459,7 +459,46 @@
 
         <!-- ── SEO Rich Content Section ── -->
         <section id="tool-details" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 scroll-mt-20">
-            <!-- TOOL_RICH_CONTENT -->
+                        <!-- Cookie Helper Link (Subtle Footer Ref) -->
+            <div class="mt-8 pt-8 border-t border-white/5 text-center">
+                <button onclick="document.getElementById('cookie-guide-modal').classList.remove('hidden')" class="text-xs text-gray-500 hover:text-purple-400 transition-colors flex items-center gap-2 mx-auto">
+                    <i class="fa-solid fa-cookie-bite"></i>
+                    <span>Still seeing 'Bot Detected' errors? Try adding Cookies.</span>
+                </button>
+            </div>
+
+            <!-- Cookie Guide Modal -->
+            <div id="cookie-guide-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div class="glass-card max-w-lg w-full p-6 relative animate-fade-in">
+                    <button onclick="document.getElementById('cookie-guide-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                    
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                        <i class="fa-solid fa-cookie-bite text-purple-400"></i>
+                        Cookie Export Guide
+                    </h3>
+                    
+                    <div class="space-y-4 text-sm text-gray-300">
+                        <div class="flex gap-4">
+                            <div class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 font-bold">1</div>
+                            <p>Install the <a href="https://chrome.google.com/webstore/detail/get-cookiestxt-locally/ccmclokmfhaocppedniocodpbbecojhg" target="_blank" class="text-purple-400 underline">Get cookies.txt LOCALLY</a> extension in your browser.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 font-bold">2</div>
+                            <p>Open <b>Facebook</b> or <b>Pinterest</b> and log in. Click the extension icon and select <b>"Export to cookies.txt"</b>.</p>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center flex-shrink-0 font-bold">3</div>
+                            <p>Upload the file to your server root as <code>cookies.txt</code>. This helps Doomsdaysnap look like a real browser.</p>
+                        </div>
+                    </div>
+                    
+                    <button onclick="document.getElementById('cookie-guide-modal').classList.add('hidden')" class="w-full mt-6 py-3 gradient-bg rounded-xl font-bold text-white">
+                        Got it!
+                    </button>
+                </div>
+            </div>
         </section>
 
         <!-- ── Other Tools Grid (Cross-Linking) ── -->
@@ -958,22 +997,22 @@
         function buildFormatRow(title, desc, iconName, colorClass, dlUrl, badge) {
             if (!dlUrl) return '';
             var badgeHtml = badge
-                ? '<span class="ml-2 text-[10px] py-0.5 px-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold">' + badge + '</span>'
+                ? '<span class="ml-2 text-[9px] sm:text-[10px] py-0.5 px-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white font-bold">' + badge + '</span>'
                 : '';
-            return '<div class="flex items-center justify-between glass-card p-3 sm:p-4 rounded-2xl hover:bg-white/5 transition-all group/item">'
-                + '<div class="flex items-center gap-4">'
-                + '<div class="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center ' + colorClass + ' group-hover/item:scale-110 transition-transform flex-shrink-0">'
-                + '<i class="fa-solid fa-' + iconName + '"></i>'
+            return '<div class="flex items-center justify-between glass-card p-2.5 sm:p-4 rounded-xl sm:rounded-2xl hover:bg-white/5 transition-all group/item">'
+                + '<div class="flex items-center gap-3 sm:gap-4">'
+                + '<div class="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-white/5 flex items-center justify-center ' + colorClass + ' group-hover/item:scale-110 transition-transform flex-shrink-0">'
+                + '<i class="fa-solid fa-' + iconName + ' text-sm sm:text-base"></i>'
                 + '</div>'
                 + '<div>'
-                + '<p class="font-semibold text-white flex items-center flex-wrap gap-1">' + title + badgeHtml + '</p>'
-                + '<p class="text-[11px] text-gray-500 uppercase tracking-wider mt-0.5">' + desc + '</p>'
+                + '<p class="font-semibold text-white text-xs sm:text-base flex items-center flex-wrap gap-1">' + title + badgeHtml + '</p>'
+                + '<p class="text-[10px] sm:text-[11px] text-gray-400 sm:text-gray-500 uppercase tracking-wider mt-0.5">' + desc + '</p>'
                 + '</div>'
                 + '</div>'
                 + '<a href="' + dlUrl + '" target="_blank" download'
-                + ' class="gradient-bg text-white px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg hover:shadow-purple-500/20 active:scale-95 transition-all flex-shrink-0"'
+                + ' class="gradient-bg text-white px-2.5 py-1.5 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-[11px] sm:text-sm flex items-center gap-2 shadow-lg hover:shadow-purple-500/20 active:scale-95 transition-all flex-shrink-0"'
                 + ' onclick="showToast(\'Download started!\',\'success\',2500)">'
-                + '<i class="fa-solid fa-arrow-down-long"></i><span>Download</span>'
+                + '<i class="fa-solid fa-arrow-down-long"></i><span class="hidden sm:inline">Download</span>'
                 + '</a>'
                 + '</div>';
         }
