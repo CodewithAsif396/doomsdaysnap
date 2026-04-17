@@ -55,19 +55,22 @@ function getYTdlpPath() {
 const YTDLP = getYTdlpPath();
 
 // Cookies file detection (must be netscape format)
-const COOKIES_FILE        = path.join(__dirname, 'cookies.txt');   // YouTube
-const TIKTOK_COOKIES_FILE = path.join(__dirname, 'cookiess.txt');  // TikTok
+// Check multiple possible filenames (browser exports often add " (1)" suffix)
+function findCookiesFile(...names) {
+    for (const name of names) {
+        const p = path.join(__dirname, name);
+        if (fs.existsSync(p)) return p;
+    }
+    return null;
+}
 
-const COOKIES_ARGS        = fs.existsSync(COOKIES_FILE)
+const COOKIES_FILE        = findCookiesFile('cookies.txt', 'cookies (1).txt', 'cookie.txt');
+const COOKIES_ARGS = COOKIES_FILE
     ? ['--cookies', COOKIES_FILE]
     : [];
-const TIKTOK_COOKIES_ARGS = fs.existsSync(TIKTOK_COOKIES_FILE)
-    ? ['--cookies', TIKTOK_COOKIES_FILE]
-    : COOKIES_ARGS; // fallback to main cookies.txt if no dedicated TikTok file
 
 console.log('[Config] Using YTDLP:', YTDLP);
-if (COOKIES_ARGS.length)        console.log('[Config] YouTube cookies:', COOKIES_FILE);
-if (TIKTOK_COOKIES_ARGS.length) console.log('[Config] TikTok  cookies:', TIKTOK_COOKIES_FILE);
+if (COOKIES_FILE) console.log('[Config] Cookies file:', COOKIES_FILE);
 
 
 app.use(cors());

@@ -5,7 +5,48 @@
  */
 const puppeteer = require('puppeteer-extra');
 const stealth   = require('puppeteer-extra-plugin-stealth');
+const fs        = require('fs');
+const path      = require('path');
 puppeteer.use(stealth());
+
+// ── Load TikTok cookies from Netscape cookies.txt ─────────────────────────────
+function loadTikTokCookies() {
+    const names = ['cookies.txt', 'cookies (1).txt', 'cookie.txt'];
+    for (const name of names) {
+        const p = path.join(__dirname, '..', name);
+        if (!fs.existsSync(p)) continue;
+        try {
+            const lines = fs.readFileSync(p, 'utf8').split('\n');
+            const cookies = [];
+            for (const line of lines) {
+                if (!line || line.startsWith('#')) continue;
+                const parts = line.split('\t');
+                if (parts.length < 7) continue;
+                const [domain, , cookiePath, secure, expires, cname, value] = parts;
+                if (!domain.includes('tiktok.com')) continue;
+                cookies.push({
+                    domain:   domain.trim(),
+                    path:     cookiePath || '/',
+                    secure:   secure === 'TRUE',
+                    expires:  parseInt(expires) || undefined,
+                    name:     cname.trim(),
+                    value:    value.trim(),
+                    httpOnly: false,
+                    sameSite: 'None',
+                });
+            }
+            if (cookies.length > 0) {
+                console.log(`[TikTokBrowser] Loaded ${cookies.length} TikTok cookies from ${name}`);
+                return cookies;
+            }
+        } catch (e) {
+            console.error('[TikTokBrowser] Cookie parse error:', e.message);
+        }
+    }
+    return [];
+}
+
+const TIKTOK_COOKIES = loadTikTokCookies();
 
 function findChromium() {
     const fs = require('fs');
@@ -83,6 +124,12 @@ async function getTikTokCdnUrl(videoUrl) {
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
         });
+
+        // Inject TikTok session cookies so we appear as a logged-in user
+        if (TIKTOK_COOKIES.length > 0) {
+            await page.setCookie(...TIKTOK_COOKIES);
+            console.log(`[TikTokBrowser] Injected ${TIKTOK_COOKIES.length} TikTok cookies`);
+        }
 
         let captured = null;
 

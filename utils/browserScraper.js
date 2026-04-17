@@ -1,8 +1,61 @@
 const puppeteer = require('puppeteer-extra');
 const stealth   = require('puppeteer-extra-plugin-stealth');
 const fs        = require('fs');
+const path      = require('path');
 
 puppeteer.use(stealth());
+
+// ── Load cookies from Netscape cookies.txt ────────────────────────────────────
+function loadCookiesFile() {
+    const names = ['cookies.txt', 'cookies (1).txt', 'cookie.txt'];
+    for (const name of names) {
+        const p = path.join(__dirname, '..', name);
+        if (fs.existsSync(p)) {
+            try {
+                const lines = fs.readFileSync(p, 'utf8').split('\n');
+                const cookies = [];
+                for (const line of lines) {
+                    if (!line || line.startsWith('#')) continue;
+                    const parts = line.split('\t');
+                    if (parts.length < 7) continue;
+                    const [domain, , cookiePath, secure, expires, name2, value] = parts;
+                    // Keep original domain — don't add leading dot to www. domains
+                    // Puppeteer needs exact domain or .domain for subdomain matching
+                    const cleanDomain = domain.trim();
+                    cookies.push({
+                        domain:   cleanDomain,
+                        path:     cookiePath || '/',
+                        secure:   secure === 'TRUE',
+                        expires:  parseInt(expires) || undefined,
+                        name:     name2.trim(),
+                        value:    value.trim(),
+                        httpOnly: false,
+                        sameSite: 'None',
+                    });
+                }
+                console.log(`[BrowserScraper] Loaded ${cookies.length} cookies from ${name}`);
+                return cookies;
+            } catch (e) {
+                console.error('[BrowserScraper] Cookie parse error:', e.message);
+            }
+        }
+    }
+    return [];
+}
+
+const ALL_COOKIES = loadCookiesFile();
+
+// Filter cookies for a specific domain
+// Matches both exact (www.x.com) and wildcard (.x.com) forms
+function cookiesFor(domains) {
+    return ALL_COOKIES.filter(c => {
+        const cd = c.domain.replace(/^\./, ''); // strip leading dot for comparison
+        return domains.some(d => {
+            const dd = d.replace(/^\./, '');
+            return cd === dd || cd.endsWith('.' + dd) || dd.endsWith('.' + cd);
+        });
+    });
+}
 
 function findChromium() {
     const isWin = process.platform === 'win32';
@@ -49,7 +102,7 @@ async function getBrowser() {
 // Opens a page, intercepts all network responses, and collects URLs whose
 // content-type looks like video, or whose URL matches known video CDN patterns.
 // Returns the best URL found (prefer HD / longest URL for CDN quality signals).
-async function interceptVideoUrl(targetUrl, cdnPatterns, timeout = 25000) {
+async function interceptVideoUrl(targetUrl, cdnPatterns, cookieDomains = [], timeout = 25000) {
     let page;
     const found = [];
 
@@ -62,6 +115,15 @@ async function interceptVideoUrl(targetUrl, cdnPatterns, timeout = 25000) {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
             '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
         );
+
+        // Inject platform cookies so we appear as a logged-in user
+        if (cookieDomains.length > 0) {
+            const toInject = cookiesFor(cookieDomains);
+            if (toInject.length > 0) {
+                await page.setCookie(...toInject);
+                console.log(`[BrowserScraper] Injected ${toInject.length} cookies for ${cookieDomains}`);
+            }
+        }
 
         // Collect video CDN URLs from network traffic
         page.on('response', async (response) => {
@@ -121,13 +183,14 @@ const browserScraper = {
                 /facebook\.com.*video_redirect/,
             ];
 
-            // Try mobile URL first (less bot detection)
+            // Try mobile URL first (less bot detection) + inject FB cookies
             const mobileUrl = videoUrl.replace('www.facebook.com', 'm.facebook.com');
-            let urls = await interceptVideoUrl(mobileUrl, cdnPatterns);
+            const fbCookieDomains = ['facebook.com', '.facebook.com'];
+            let urls = await interceptVideoUrl(mobileUrl, cdnPatterns, fbCookieDomains);
 
-            // Fallback: try desktop URL
+            // Fallback: try desktop URL with cookies
             if (urls.length === 0) {
-                urls = await interceptVideoUrl(videoUrl, cdnPatterns);
+                urls = await interceptVideoUrl(videoUrl, cdnPatterns, fbCookieDomains);
             }
 
             // Fallback: scrape script tags for playable_url
@@ -164,6 +227,8 @@ const browserScraper = {
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
                 '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
             );
+            const fbCookies = cookiesFor(['facebook.com', '.facebook.com']);
+            if (fbCookies.length > 0) await page.setCookie(...fbCookies);
             await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
             await new Promise(r => setTimeout(r, 3000));
 
@@ -212,7 +277,8 @@ const browserScraper = {
                 /pinimg\.com.*video/,
             ];
 
-            let urls = await interceptVideoUrl(videoUrl, cdnPatterns);
+            const pinCookieDomains = ['pinterest.com', '.pinterest.com'];
+            let urls = await interceptVideoUrl(videoUrl, cdnPatterns, pinCookieDomains);
 
             // Fallback: scrape JSON data
             if (urls.length === 0) {
@@ -243,6 +309,13 @@ const browserScraper = {
             const browser = await getBrowser();
             page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 800 });
+            await page.setUserAgent(
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+                '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+            );
+            // Inject Pinterest cookies (logged-in session)
+            const pinCookies = cookiesFor(['pinterest.com', '.pinterest.com', 'www.pinterest.com']);
+            if (pinCookies.length > 0) await page.setCookie(...pinCookies);
             await page.goto(videoUrl, { waitUntil: 'networkidle2', timeout: 25000 });
 
             const urls = await page.evaluate(() => {
@@ -287,7 +360,8 @@ const browserScraper = {
                 /\.snap\.com.*media/,
             ];
 
-            let urls = await interceptVideoUrl(videoUrl, cdnPatterns, 30000);
+            const snapCookieDomains = ['snapchat.com', '.snapchat.com', 'accounts.snapchat.com'];
+            let urls = await interceptVideoUrl(videoUrl, cdnPatterns, snapCookieDomains, 30000);
 
             // Fallback: check video tag after full load
             if (urls.length === 0) {
