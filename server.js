@@ -77,6 +77,25 @@ app.use(cors());
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname)));
 
+// ─── CDN URL Cache ─────────────────────────────────────────────────────────────
+// Pre-fetched during /api/info so /api/download can start instantly (no second yt-dlp call).
+const cdnCache = new Map();
+const CDN_TTL  = 4 * 60 * 1000; // 4 minutes
+
+function cdnCacheGet(key) {
+    const e = cdnCache.get(key);
+    if (!e) return null;
+    if (Date.now() - e.ts > CDN_TTL) { cdnCache.delete(key); return null; }
+    return e;
+}
+function cdnCacheSet(key, urls, headers = {}) {
+    cdnCache.set(key, { urls, headers, ts: Date.now() });
+    if (cdnCache.size > 300) { // keep map small
+        const oldest = [...cdnCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+        if (oldest) cdnCache.delete(oldest[0]);
+    }
+}
+
 // ─── Rate Limiter ─────────────────────────────────────────────────────────────
 const rateLimitMap = new Map();
 const RATE_LIMIT   = 40;
@@ -771,6 +790,45 @@ app.get('/robots.txt', (_req, res) => {
     res.send(`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${base}/sitemap.xml`);
 });
 
+// ─── Background CDN pre-fetch ─────────────────────────────────────────────────
+// Called after /api/info succeeds. Resolves the best-quality CDN URL and caches
+// it so the next /api/download call returns immediately (no second yt-dlp run).
+async function preFetchCdnUrl(safeUrl, info) {
+    const isFB   = safeUrl.includes('facebook.com') || safeUrl.includes('fb.watch');
+    const isSnap = safeUrl.includes('snapchat.com');
+    const isPin  = safeUrl.includes('pinterest.com') || safeUrl.includes('pin.it');
+
+    if (!isFB && !isSnap && !isPin) return; // only needed for slow platforms
+
+    const referer = isFB  ? 'https://www.facebook.com/'
+                  : isSnap ? 'https://www.snapchat.com/'
+                  : 'https://www.pinterest.com/';
+
+    // For Pinterest use cobalt (fast, no yt-dlp spawn needed)
+    if (isPin) {
+        const cobalt = await cobaltExtract(safeUrl).catch(() => null);
+        if (cobalt?.url) {
+            cdnCacheSet(safeUrl, [cobalt.url], { 'Referer': referer });
+            console.log('[Cache] Pinterest cobalt URL cached');
+        }
+        return;
+    }
+
+    // For FB / Snapchat: run yt-dlp --get-url in background
+    const extraArgs = ['--referer', referer, '--merge-output-format', 'mp4'];
+    if (COOKIES_FILE) extraArgs.push('--cookies', COOKIES_FILE);
+
+    const fmt = info?.formats?.[0]?.fid
+        ? `${info.formats[0].fid}+bestaudio/best`
+        : 'bestvideo[ext=mp4]+bestaudio/best[ext=mp4]/best';
+
+    const urls = await getDirectUrls(safeUrl, fmt, extraArgs);
+    if (urls.length > 0) {
+        cdnCacheSet(safeUrl, urls, { 'Referer': referer });
+        console.log(`[Cache] Pre-fetched ${urls.length} CDN URL(s) for ${safeUrl.slice(0, 60)}`);
+    }
+}
+
 // Info — metadata only, nothing stored
 app.post('/api/info', rateLimit, async (req, res) => {
     try {
@@ -782,6 +840,10 @@ app.post('/api/info', rateLimit, async (req, res) => {
         const provider = getProvider(safeUrl);
         console.log(`[INFO] ${provider.constructor.name} → ${safeUrl}`);
         const info = await provider.getInfo(safeUrl);
+
+        // Pre-fetch CDN URL in background so /api/download is instant
+        setImmediate(() => preFetchCdnUrl(safeUrl, info).catch(() => {}));
+
         return res.json({ ...info, originalUrl: url });
     } catch (err) {
         console.error('[INFO Error]:', err.message);
@@ -806,14 +868,6 @@ app.post('/api/info', rateLimit, async (req, res) => {
 const YT_ARGS = [
     '--extractor-args', 'youtube:player_client=android,web',
     '--add-header', 'User-Agent:Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36',
-];
-const TIKTOK_ARGS = [
-    '--add-header', 'referer:https://www.tiktok.com/',
-    '--add-header', 'origin:https://www.tiktok.com',
-    '--add-header', 'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    '--extractor-args', 'tiktok:api_hostname=api22-normal-c-useast2a.tiktokv.com;app_version=33.4.3;manifest_app_version=2023304030',
-    '--no-check-formats',
-    '--geo-bypass-country', 'US',
 ];
 const INSTAGRAM_ARGS = [
     '--add-header', 'referer:https://www.instagram.com/',
@@ -1015,7 +1069,21 @@ app.get('/api/download', rateLimit, async (req, res) => {
 
             const cdnHeaders = { 'User-Agent': uaData.ua, 'Referer': referer };
 
-            // ── Pinterest: cobalt.tools API first (free, reliable) ────────────
+            // ── Check pre-fetched cache first (populated during /api/info) ─────
+            const cached = cdnCacheGet(safeUrl);
+            if (cached) {
+                console.log(`[DOWNLOAD] Cache hit → instant start`);
+                cdnCache.delete(safeUrl); // use once
+                if (cached.urls.length === 1) {
+                    const ok = await pipeCdnUrl(cached.urls[0], res, req, { ...cdnHeaders, ...cached.headers });
+                    if (ok) return;
+                } else if (cached.urls.length >= 2) {
+                    spawnMergeStream(safeUrl, format, res, req, extraArgs);
+                    return;
+                }
+            }
+
+            // ── Pinterest: cobalt.tools API (fast, no yt-dlp needed) ──────────
             if (isPinterest) {
                 console.log('[DOWNLOAD] Pinterest → cobalt.tools API');
                 const cobalt = await cobaltExtract(safeUrl).catch(() => null);
@@ -1023,14 +1091,15 @@ app.get('/api/download', rateLimit, async (req, res) => {
                     const ok = await pipeCdnUrl(cobalt.url, res, req, cdnHeaders);
                     if (ok) return;
                 }
-                console.log('[DOWNLOAD] Pinterest cobalt failed → yt-dlp fallback');
-                await tryDirectThenMerge(safeUrl, format, res, req, extraArgs, cdnHeaders);
+                console.log('[DOWNLOAD] Pinterest cobalt failed → yt-dlp stream');
+                spawnMergeStream(safeUrl, format, res, req, extraArgs);
                 return;
             }
 
-            // ── Facebook / Snapchat: yt-dlp with cookies ──────────────────────
-            console.log(`[DOWNLOAD] ${isFacebook ? 'Facebook' : 'Snapchat'} → yt-dlp with cookies`);
-            await tryDirectThenMerge(safeUrl, format, res, req, extraArgs, cdnHeaders);
+            // ── Facebook / Snapchat: yt-dlp stream (skip --get-url step) ──────
+            // spawnMergeStream pipes data as it arrives — starts in ~2s not ~12s
+            console.log(`[DOWNLOAD] ${isFacebook ? 'Facebook' : 'Snapchat'} → yt-dlp stream`);
+            spawnMergeStream(safeUrl, format, res, req, extraArgs);
 
         } else {
             console.log(`[DOWNLOAD] generic → yt-dlp stream`);
