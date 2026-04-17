@@ -1,7 +1,6 @@
 const puppeteer = require('puppeteer-extra');
 const stealth   = require('puppeteer-extra-plugin-stealth');
 const fs        = require('fs');
-const path      = require('path');
 
 puppeteer.use(stealth());
 
@@ -19,7 +18,6 @@ function findChromium() {
         '/usr/bin/google-chrome-stable',
         '/usr/bin/google-chrome',
     ];
-
     for (const p of paths) {
         if (p && fs.existsSync(p)) return p;
     }
@@ -47,144 +45,308 @@ async function getBrowser() {
     return _browser;
 }
 
-/**
- * Generalized scraper for Facebook, Pinterest, and Snapchat.
- * Returns { title, thumbnail, duration, formats, provider }
- */
+// ── Network-intercept helper ──────────────────────────────────────────────────
+// Opens a page, intercepts all network responses, and collects URLs whose
+// content-type looks like video, or whose URL matches known video CDN patterns.
+// Returns the best URL found (prefer HD / longest URL for CDN quality signals).
+async function interceptVideoUrl(targetUrl, cdnPatterns, timeout = 25000) {
+    let page;
+    const found = [];
+
+    try {
+        const browser = await getBrowser();
+        page = await browser.newPage();
+
+        await page.setViewport({ width: 1280, height: 800 });
+        await page.setUserAgent(
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+            '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        );
+
+        // Collect video CDN URLs from network traffic
+        page.on('response', async (response) => {
+            try {
+                const url = response.url();
+                const ct  = (response.headers()['content-type'] || '').toLowerCase();
+                const isVideo = ct.includes('video') || ct.includes('octet-stream');
+                const matchesCdn = cdnPatterns.some(p => url.match(p));
+
+                if ((isVideo || matchesCdn) && url.startsWith('http')) {
+                    const status = response.status();
+                    if (status === 200 || status === 206) {
+                        found.push(url);
+                    }
+                }
+            } catch (_) {}
+        });
+
+        // Also intercept XHR/fetch for JSON data containing video URLs
+        await page.setRequestInterception(true);
+        page.on('request', (req) => {
+            // Block images and fonts to speed up loading
+            const rt = req.resourceType();
+            if (['image', 'font', 'stylesheet'].includes(rt)) {
+                req.abort();
+            } else {
+                req.continue();
+            }
+        });
+
+        await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout });
+        // Give extra time for lazy-loaded video elements to start fetching
+        await new Promise(r => setTimeout(r, 3000));
+
+        return found;
+    } catch (err) {
+        console.error('[BrowserScraper] interceptVideoUrl error:', err.message);
+        return found;
+    } finally {
+        if (page) await page.close().catch(() => {});
+    }
+}
+
 const browserScraper = {
-    
+
+    // ── Facebook ─────────────────────────────────────────────────────────────
     async extractFacebook(videoUrl) {
-        let page;
         try {
-            const browser = await getBrowser();
-            page = await browser.newPage();
-            await page.setViewport({ width: 1280, height: 800 });
-            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36');
+            console.log('[BrowserScraper] FB → network intercept:', videoUrl);
 
-            // Use mobile FB often bypasses desktop restrictions
-            const targetUrl = videoUrl.includes('m.facebook.com') ? videoUrl : videoUrl.replace('www.facebook.com', 'm.facebook.com');
-            
-            console.log('[BrowserScraper] FB Navigating:', targetUrl);
-            await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-            await new Promise(r => setTimeout(r, 3000));
+            // Facebook CDN patterns
+            const cdnPatterns = [
+                /video\.xx\.fbcdn\.net/,
+                /video\.fbcdn\.net/,
+                /fbcdn\.net.*\.mp4/,
+                /\.fbcdn\.net.*type=video/,
+                /facebook\.com.*video_redirect/,
+            ];
 
-            const data = await page.evaluate(() => {
-                const results = { title: 'Facebook Video', thumbnail: '', formats: [] };
-                
-                // 1. Try to find HD/SD in script tags
-                const scripts = Array.from(document.querySelectorAll('script'));
-                for (const s of scripts) {
-                    const content = s.textContent;
-                    if (content.includes('playable_url')) {
-                        // Extract HD/SD links via regex
-                        const hdMatch = content.match(/"browser_native_hd_url":"([^"]+)"/);
-                        const sdMatch = content.match(/"browser_native_sd_url":"([^"]+)"/);
-                        const thumbMatch = content.match(/"preferred_thumbnail":{"image":{"uri":"([^"]+)"/);
-                        
-                        if (hdMatch) results.formats.push({ height: 'HD', url: hdMatch[1].replace(/\\/g, ''), ext: 'mp4' });
-                        if (sdMatch) results.formats.push({ height: 'SD', url: sdMatch[1].replace(/\\/g, ''), ext: 'mp4' });
-                        if (thumbMatch) results.thumbnail = thumbMatch[1].replace(/\\/g, '');
-                    }
-                }
+            // Try mobile URL first (less bot detection)
+            const mobileUrl = videoUrl.replace('www.facebook.com', 'm.facebook.com');
+            let urls = await interceptVideoUrl(mobileUrl, cdnPatterns);
 
-                // 2. Fallback to video tags
-                if (results.formats.length === 0) {
-                    const v = document.querySelector('video');
-                    if (v && (v.src || v.currentSrc)) {
-                        results.formats.push({ height: 'HD', url: v.currentSrc || v.src, ext: 'mp4' });
-                    }
-                }
+            // Fallback: try desktop URL
+            if (urls.length === 0) {
+                urls = await interceptVideoUrl(videoUrl, cdnPatterns);
+            }
 
-                return results;
-            });
+            // Fallback: scrape script tags for playable_url
+            if (urls.length === 0) {
+                urls = await this._fbScriptScrape(mobileUrl);
+            }
 
-            return data.formats.length > 0 ? { ...data, provider: 'facebook' } : null;
+            if (urls.length === 0) return null;
+
+            // Prefer HD (longer URLs tend to be higher quality on fbcdn)
+            urls.sort((a, b) => b.length - a.length);
+            const best = urls[0];
+
+            return {
+                title: 'Facebook Video',
+                thumbnail: '',
+                formats: [{ height: 'HD', url: best, ext: 'mp4' }],
+                provider: 'facebook',
+            };
         } catch (err) {
             console.error('[BrowserScraper] FB Error:', err.message);
             return null;
-        } finally {
-            if (page) await page.close().catch(() => {});
         }
     },
 
-    async extractPinterest(videoUrl) {
+    // Script-tag fallback for Facebook
+    async _fbScriptScrape(targetUrl) {
         let page;
         try {
             const browser = await getBrowser();
             page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 800 });
-            
-            console.log('[BrowserScraper] Pinterest Navigating:', videoUrl);
-            await page.goto(videoUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+            await page.setUserAgent(
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+                '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+            );
+            await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
+            await new Promise(r => setTimeout(r, 3000));
 
-            const data = await page.evaluate(() => {
-                const results = { title: 'Pinterest Video', thumbnail: '', formats: [] };
-                
-                // Pinterest stores data in a script tag
-                const jsonScript = document.querySelector('script[id="__PINTEREST_ANYWHERE_DATA__"], script[type="application/json"]');
-                if (jsonScript) {
-                    try {
-                        const json = JSON.parse(jsonScript.textContent);
-                        // Search for video links in the nested objects
-                        const traverse = (obj) => {
-                            if (!obj || typeof obj !== 'object') return;
-                            if (obj.v720p || obj.v480p || obj.vMobile) {
-                                if (obj.v720p?.url) results.formats.push({ height: '720p', url: obj.v720p.url, ext: 'mp4' });
-                                if (obj.v480p?.url) results.formats.push({ height: '480p', url: obj.v480p.url, ext: 'mp4' });
-                            }
-                            Object.values(obj).forEach(traverse);
-                        };
-                        traverse(json);
-                    } catch(e) {}
-                }
+            const urls = await page.evaluate(() => {
+                const results = [];
+                const scripts = Array.from(document.querySelectorAll('script'));
+                for (const s of scripts) {
+                    const c = s.textContent;
+                    if (!c.includes('playable_url')) continue;
 
-                // Fallback: search for video tag
-                if (results.formats.length === 0) {
-                    const v = document.querySelector('video');
-                    if (v && (v.src || v.currentSrc)) {
-                        results.formats.push({ height: 'HD', url: v.currentSrc || v.src, ext: 'mp4' });
+                    // Multiple regex patterns for different FB page formats
+                    const patterns = [
+                        /"browser_native_hd_url":"([^"]+)"/g,
+                        /"browser_native_sd_url":"([^"]+)"/g,
+                        /"playable_url":"([^"]+)"/g,
+                        /"playable_url_quality_hd":"([^"]+)"/g,
+                        /playable_url\\?":\\?"([^"\\]+)/g,
+                    ];
+                    for (const re of patterns) {
+                        let m;
+                        while ((m = re.exec(c)) !== null) {
+                            const url = m[1].replace(/\\/g, '');
+                            if (url.startsWith('http')) results.push(url);
+                        }
                     }
                 }
-
-                return results;
+                return [...new Set(results)];
             });
 
-            return data.formats.length > 0 ? { ...data, provider: 'pinterest' } : null;
+            return urls;
+        } catch (err) {
+            console.error('[BrowserScraper] FB script scrape error:', err.message);
+            return [];
+        } finally {
+            if (page) await page.close().catch(() => {});
+        }
+    },
+
+    // ── Pinterest ─────────────────────────────────────────────────────────────
+    async extractPinterest(videoUrl) {
+        try {
+            console.log('[BrowserScraper] Pinterest → network intercept:', videoUrl);
+
+            const cdnPatterns = [
+                /v\.pinimg\.com.*\.mp4/,
+                /pinimg\.com.*video/,
+            ];
+
+            let urls = await interceptVideoUrl(videoUrl, cdnPatterns);
+
+            // Fallback: scrape JSON data
+            if (urls.length === 0) {
+                urls = await this._pinterestJsonScrape(videoUrl);
+            }
+
+            if (urls.length === 0) return null;
+
+            // Prefer 720p if multiple quality URLs
+            const hd = urls.find(u => u.includes('720p') || u.includes('V720'));
+            const best = hd || urls[0];
+
+            return {
+                title: 'Pinterest Video',
+                thumbnail: '',
+                formats: [{ height: '720p', url: best, ext: 'mp4' }],
+                provider: 'pinterest',
+            };
         } catch (err) {
             console.error('[BrowserScraper] Pinterest Error:', err.message);
             return null;
-        } finally {
-            if (page) await page.close().catch(() => {});
         }
     },
 
-    async extractSnapchat(videoUrl) {
+    async _pinterestJsonScrape(videoUrl) {
         let page;
         try {
             const browser = await getBrowser();
             page = await browser.newPage();
             await page.setViewport({ width: 1280, height: 800 });
+            await page.goto(videoUrl, { waitUntil: 'networkidle2', timeout: 25000 });
 
-            console.log('[BrowserScraper] Snapchat Navigating:', videoUrl);
-            await page.goto(videoUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-
-            const data = await page.evaluate(() => {
-                const results = { title: 'Snapchat Video', thumbnail: '', formats: [] };
-                const v = document.querySelector('video');
-                if (v && (v.src || v.currentSrc)) {
-                    results.formats.push({ height: 'HD', url: v.currentSrc || v.src, ext: 'mp4' });
+            const urls = await page.evaluate(() => {
+                const results = [];
+                // Check all script tags for video data
+                const scripts = Array.from(document.querySelectorAll('script'));
+                for (const s of scripts) {
+                    const c = s.textContent;
+                    if (!c.includes('pinimg.com')) continue;
+                    const matches = c.match(/https?:\/\/v\.pinimg\.com[^"'\s]+\.mp4[^"'\s]*/g);
+                    if (matches) results.push(...matches);
                 }
-                return results;
+                // Check video element
+                const v = document.querySelector('video source, video');
+                const src = v?.src || v?.currentSrc;
+                if (src && src.startsWith('http')) results.push(src);
+
+                return [...new Set(results)];
             });
 
-            return data.formats.length > 0 ? { ...data, provider: 'snapchat' } : null;
+            return urls;
         } catch (err) {
-            console.error('[BrowserScraper] Snapchat Error:', err.message);
-            return null;
+            console.error('[BrowserScraper] Pinterest JSON scrape error:', err.message);
+            return [];
         } finally {
             if (page) await page.close().catch(() => {});
         }
-    }
+    },
+
+    // ── Snapchat ──────────────────────────────────────────────────────────────
+    async extractSnapchat(videoUrl) {
+        try {
+            console.log('[BrowserScraper] Snapchat → network intercept:', videoUrl);
+
+            const cdnPatterns = [
+                /cf-st\.sc-cdn\.net/,
+                /sc-cdn\.net.*\.mp4/,
+                /snapchat-video/,
+                /snap\.com.*video/,
+                /storage\.googleapis\.com.*snap/,
+                /snapkit\.com.*video/,
+                /\.snap\.com.*media/,
+            ];
+
+            let urls = await interceptVideoUrl(videoUrl, cdnPatterns, 30000);
+
+            // Fallback: check video tag after full load
+            if (urls.length === 0) {
+                urls = await this._snapVideoTag(videoUrl);
+            }
+
+            if (urls.length === 0) return null;
+
+            return {
+                title: 'Snapchat Video',
+                thumbnail: '',
+                formats: [{ height: 'HD', url: urls[0], ext: 'mp4' }],
+                provider: 'snapchat',
+            };
+        } catch (err) {
+            console.error('[BrowserScraper] Snapchat Error:', err.message);
+            return null;
+        }
+    },
+
+    async _snapVideoTag(videoUrl) {
+        let page;
+        try {
+            const browser = await getBrowser();
+            page = await browser.newPage();
+            await page.setViewport({ width: 390, height: 844 }); // mobile viewport
+            await page.setUserAgent(
+                'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) ' +
+                'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
+            );
+            await page.goto(videoUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+            await new Promise(r => setTimeout(r, 5000));
+
+            const urls = await page.evaluate(() => {
+                const results = [];
+                // Check all video elements
+                document.querySelectorAll('video').forEach(v => {
+                    if (v.src && v.src.startsWith('http')) results.push(v.src);
+                    if (v.currentSrc && v.currentSrc.startsWith('http')) results.push(v.currentSrc);
+                    v.querySelectorAll('source').forEach(s => {
+                        if (s.src && s.src.startsWith('http')) results.push(s.src);
+                    });
+                });
+                // Check page source for CDN URLs
+                const html = document.documentElement.innerHTML;
+                const matches = html.match(/https?:\/\/[^"'\s]+\.mp4[^"'\s]*/g);
+                if (matches) results.push(...matches.filter(u => !u.includes('logo') && !u.includes('icon')));
+
+                return [...new Set(results)];
+            });
+
+            return urls;
+        } catch (err) {
+            console.error('[BrowserScraper] Snap video tag error:', err.message);
+            return [];
+        } finally {
+            if (page) await page.close().catch(() => {});
+        }
+    },
 };
 
 module.exports = browserScraper;
