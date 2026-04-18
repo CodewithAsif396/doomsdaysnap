@@ -393,30 +393,30 @@ app.get('/', (_req, res) => {
         
         // Generate Large Premium Grid for Home Page
         const gridHtml = `
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10 stagger-reveal">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8 lg:gap-10 stagger-reveal">
                 ${Object.keys(PLATFORM_SEO_DATA).map(key => {
                     const p = PLATFORM_SEO_DATA[key];
                     const name = key.split('-')[0].charAt(0).toUpperCase() + key.split('-')[0].slice(1);
                     return `
-                        <a href="/${key}" class="group relative flex flex-col items-center justify-center p-8 rounded-[2.5rem] glass-card border border-white/5 hover:border-purple-500/30 transition-all duration-700 hover-lift overflow-hidden stagger-item">
+                        <a href="/${key}" class="group relative flex flex-col items-center justify-center p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] glass-card border border-white/5 hover:border-purple-500/30 transition-all duration-700 hover-lift overflow-hidden stagger-item">
                             <!-- Animated Background Glow -->
                             <div class="absolute -inset-2 bg-gradient-to-br ${p.bg.replace('10', '40')} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                             
                             <!-- Card Content -->
-                            <div class="relative z-10 w-24 h-24 rounded-3xl ${p.bg} flex items-center justify-center mb-8 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-2xl shadow-black/40 border border-white/10">
-                                <i class="fa-brands ${p.icon} text-5xl ${p.color} drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"></i>
+                            <div class="relative z-10 w-14 h-14 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl ${p.bg} flex items-center justify-center mb-4 sm:mb-8 transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-2xl shadow-black/40 border border-white/10">
+                                <i class="fa-brands ${p.icon} text-3xl sm:text-5xl ${p.color} drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"></i>
                             </div>
                             
-                            <h3 class="relative z-10 text-2xl font-black text-white mb-2 group-hover:text-purple-400 transition-colors tracking-tight">${name}</h3>
-                            <div class="relative z-10 flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 group-hover:bg-purple-500/10 group-hover:border-purple-500/20 transition-all">
-                                <span class="text-[10px] text-gray-400 uppercase tracking-[0.2em] font-bold">Fast Download</span>
-                                <i class="fa-solid fa-circle-check text-[10px] text-purple-400"></i>
+                            <h3 class="relative z-10 text-lg sm:text-2xl font-black text-white mb-1 sm:mb-2 group-hover:text-purple-400 transition-colors tracking-tight">${name}</h3>
+                            <div class="relative z-10 flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white/5 border border-white/5 group-hover:bg-purple-500/10 group-hover:border-purple-500/20 transition-all">
+                                <span class="text-[8px] sm:text-[10px] text-gray-400 uppercase tracking-[0.1em] sm:tracking-[0.2em] font-bold">Fast Download</span>
+                                <i class="fa-solid fa-circle-check text-[8px] sm:text-[10px] text-purple-400"></i>
                             </div>
                             
                             <!-- Corner Accent -->
-                            <div class="absolute -bottom-6 -right-6 w-20 h-20 bg-gradient-to-br ${p.bg.replace('10', '30')} rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
-                            <div class="absolute bottom-6 right-6 text-white/10 group-hover:text-purple-500/40 transform translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500">
-                                <i class="fa-solid fa-arrow-right-long text-2xl"></i>
+                            <div class="absolute -bottom-6 -right-6 w-14 h-14 sm:w-20 sm:h-20 bg-gradient-to-br ${p.bg.replace('10', '30')} rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+                            <div class="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 text-white/10 group-hover:text-purple-500/40 transform translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500">
+                                <i class="fa-solid fa-arrow-right-long text-xl sm:text-2xl"></i>
                             </div>
                         </a>
                     `;
