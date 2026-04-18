@@ -1077,51 +1077,46 @@ app.get('/api/download', rateLimit, async (req, res) => {
             });
 
         } else if (isFacebook || isSnapchat || isPinterest) {
-            const uaData  = getRandomUA();
-            const referer = isFacebook  ? 'https://www.facebook.com/'
-                          : isSnapchat  ? 'https://www.snapchat.com/'
-                          : 'https://www.pinterest.com/';
-
-            const extraArgs = [
-                '--user-agent', uaData.ua,
-                '--referer', referer,
-                '--merge-output-format', 'mp4',
-            ];
-            if (COOKIES_FILE) extraArgs.push('--cookies', COOKIES_FILE);
-
-            const cdnHeaders = { 'User-Agent': uaData.ua, 'Referer': referer };
-
-            // ── Check pre-fetched cache first (populated during /api/info) ─────
-            const cached = cdnCacheGet(safeUrl);
-            if (cached) {
-                console.log(`[DOWNLOAD] Cache hit → instant start`);
-                cdnCache.delete(safeUrl); // use once
-                if (cached.urls.length === 1) {
-                    const ok = await pipeCdnUrl(cached.urls[0], res, req, { ...cdnHeaders, ...cached.headers });
-                    if (ok) return;
-                } else if (cached.urls.length >= 2) {
-                    spawnMergeStream(safeUrl, format, res, req, extraArgs);
-                    return;
-                }
-            }
-
-            // ── Pinterest: cobalt.tools API (fast, no yt-dlp needed) ──────────
+            // ── Pinterest: cobalt.tools API ───────────────────────────────────
             if (isPinterest) {
-                console.log('[DOWNLOAD] Pinterest → cobalt.tools API');
+                const uaData = getRandomUA();
                 const cobalt = await cobaltExtract(safeUrl).catch(() => null);
                 if (cobalt?.url) {
-                    const ok = await pipeCdnUrl(cobalt.url, res, req, cdnHeaders);
+                    const ok = await pipeCdnUrl(cobalt.url, res, req, { 'User-Agent': uaData.ua, 'Referer': 'https://www.pinterest.com/' });
                     if (ok) return;
                 }
-                console.log('[DOWNLOAD] Pinterest cobalt failed → yt-dlp stream');
-                spawnMergeStream(safeUrl, format, res, req, extraArgs);
+                spawnMergeStream(safeUrl, format, res, req, ['--user-agent', uaData.ua, '--referer', 'https://www.pinterest.com/', '--merge-output-format', 'mp4']);
                 return;
             }
 
-            // ── Facebook / Snapchat: yt-dlp stream (skip --get-url step) ──────
-            // spawnMergeStream pipes data as it arrives — starts in ~2s not ~12s
-            console.log(`[DOWNLOAD] ${isFacebook ? 'Facebook' : 'Snapchat'} → yt-dlp stream`);
-            spawnMergeStream(safeUrl, format, res, req, extraArgs);
+            // ── Facebook / Snapchat: Python social_server (port 5001) ─────────
+            console.log(`[DOWNLOAD] ${isFacebook ? 'Facebook' : 'Snapchat'} → social_server`);
+            const platform = isFacebook ? 'facebook' : 'snapchat';
+            const socialBody = JSON.stringify({ url: safeUrl });
+            const socialResult = await new Promise((resolve) => {
+                const opts = {
+                    hostname: '127.0.0.1', port: SOCIAL_PORT, path: '/social/download', method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(socialBody) },
+                };
+                const r2 = http.request(opts, (r) => {
+                    let d = ''; r.on('data', c => d += c);
+                    r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
+                });
+                r2.on('error', () => resolve(null));
+                r2.write(socialBody); r2.end();
+            });
+
+            if (socialResult?.video_url) {
+                console.log(`[DOWNLOAD] social_server got URL for ${platform}`);
+                const referer = isFacebook ? 'https://www.facebook.com/' : 'https://www.snapchat.com/';
+                const ok = await pipeCdnUrl(socialResult.video_url, res, req, {
+                    'Referer': referer,
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                });
+                if (ok) return;
+            }
+
+            if (!res.headersSent) res.status(500).send(`${platform} video download failed. Make sure the video is public.`);
 
         } else {
             console.log(`[DOWNLOAD] generic → yt-dlp stream`);
