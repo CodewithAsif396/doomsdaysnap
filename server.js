@@ -1318,6 +1318,30 @@ app.get('/proxy', (req, res) => {
     proxy.end();
 });
 
+// ─── Social Python proxy (Facebook/Snapchat/Pinterest) ───────────────────────
+const SOCIAL_PORT = 5001;
+
+app.post('/social/download', (req, res) => {
+    const body = JSON.stringify(req.body);
+    const opts = {
+        hostname: '127.0.0.1', port: SOCIAL_PORT, path: '/social/download', method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+    };
+    const proxy = http.request(opts, (r) => { res.writeHead(r.statusCode, r.headers); r.pipe(res); });
+    proxy.on('error', () => res.status(503).json({ error: 'Social downloader unavailable' }));
+    proxy.write(body); proxy.end();
+});
+
+app.get('/social/proxy', (req, res) => {
+    const qs = new URLSearchParams(req.query).toString();
+    const proxy = http.request(
+        { hostname: '127.0.0.1', port: SOCIAL_PORT, path: `/social/proxy?${qs}`, method: 'GET' },
+        (r) => { res.writeHead(r.statusCode, r.headers); r.pipe(res); }
+    );
+    proxy.on('error', () => res.status(503).send('Social downloader unavailable'));
+    proxy.end();
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Doomsdaysnap running at http://localhost:${PORT}`);
 });
