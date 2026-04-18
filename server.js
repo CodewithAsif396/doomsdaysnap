@@ -176,6 +176,242 @@ app.post('/admin/maintenance', (req, res) => {
     res.json({ success: true, maintenance: data });
 });
 
+// ─── Admin Panel UI ───────────────────────────────────────────────────────────
+app.get('/admin', (req, res) => {
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin Panel — Doomsdaysnap</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+.topbar{background:#111118;border-bottom:1px solid #1e1e2e;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:1.2rem;font-weight:700;background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logout{font-size:.8rem;color:#6b7280;cursor:pointer;text-decoration:underline}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh}
+.login-card{background:#111118;border:1px solid #1e1e2e;border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center}
+.login-card h2{font-size:1.4rem;font-weight:700;margin-bottom:8px}
+.login-card p{color:#6b7280;font-size:.9rem;margin-bottom:24px}
+.input{width:100%;background:#0a0a0f;border:1px solid #2d2d3d;border-radius:10px;padding:12px 16px;color:#fff;font-size:.95rem;outline:none;transition:border .2s}
+.input:focus{border-color:#7c3aed}
+.btn{width:100%;margin-top:12px;padding:13px;background:linear-gradient(135deg,#7c3aed,#db2777);border:none;border-radius:10px;color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;transition:opacity .2s}
+.btn:hover{opacity:.88}
+.err{color:#f87171;font-size:.85rem;margin-top:10px}
+#panel{display:none}
+.content{max-width:860px;margin:0 auto;padding:32px 20px}
+.section{background:#111118;border:1px solid #1e1e2e;border-radius:14px;margin-bottom:20px;overflow:hidden}
+.section-header{padding:18px 22px;border-bottom:1px solid #1e1e2e;display:flex;align-items:center;gap:12px}
+.section-header h3{font-size:1rem;font-weight:600}
+.section-header .badge{font-size:.72rem;padding:3px 10px;border-radius:20px;font-weight:600}
+.badge-on{background:#dc2626/20;background:rgba(220,38,38,.15);color:#f87171;border:1px solid rgba(220,38,38,.3)}
+.badge-off{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+.global-row{padding:20px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.global-row .desc{font-size:.9rem;color:#9ca3af}
+.global-row .desc strong{color:#e2e8f0}
+.page-row{padding:14px 22px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #1a1a2a;gap:12px}
+.page-row:first-of-type{border-top:none}
+.page-info{display:flex;align-items:center;gap:12px}
+.page-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.page-name{font-size:.92rem;font-weight:500}
+.page-path{font-size:.77rem;color:#6b7280;margin-top:1px}
+/* Toggle Switch */
+.toggle{position:relative;display:inline-block;width:50px;height:26px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#2d2d3d;border-radius:26px;transition:.3s}
+.slider:before{content:'';position:absolute;height:20px;width:20px;left:3px;bottom:3px;background:#9ca3af;border-radius:50%;transition:.3s}
+input:checked+.slider{background:linear-gradient(135deg,#7c3aed,#db2777)}
+input:checked+.slider:before{transform:translateX(24px);background:#fff}
+.msg-row{padding:18px 22px;display:flex;flex-direction:column;gap:10px}
+.msg-row label{font-size:.82rem;color:#9ca3af;font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+.msg-input{background:#0a0a0f;border:1px solid #2d2d3d;border-radius:9px;padding:10px 14px;color:#fff;font-size:.88rem;outline:none;transition:border .2s;width:100%}
+.msg-input:focus{border-color:#7c3aed}
+.save-btn{align-self:flex-start;padding:9px 22px;background:linear-gradient(135deg,#7c3aed,#db2777);border:none;border-radius:9px;color:#fff;font-weight:600;font-size:.85rem;cursor:pointer;transition:opacity .2s}
+.save-btn:hover{opacity:.85}
+.toast{position:fixed;bottom:24px;right:24px;background:#1e1e2e;border:1px solid #2d2d3d;border-radius:10px;padding:12px 20px;font-size:.85rem;color:#a3e635;display:none;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.dot-red{background:#ef4444}
+.dot-green{background:#22c55e}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div style="font-size:2.5rem;margin-bottom:16px">🔐</div>
+    <h2>Admin Panel</h2>
+    <p>Enter your secret key to continue</p>
+    <input id="secret-input" class="input" type="password" placeholder="Secret key..." onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn" onclick="doLogin()">Login</button>
+    <div id="login-err" class="err"></div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div id="panel">
+  <div class="topbar">
+    <span class="brand">⚡ Doomsdaysnap Admin</span>
+    <span class="logout" onclick="doLogout()">Logout</span>
+  </div>
+  <div class="content">
+
+    <!-- Global Maintenance -->
+    <div class="section">
+      <div class="section-header">
+        <span style="font-size:1.3rem">🌐</span>
+        <h3>Global Maintenance</h3>
+        <span id="global-badge" class="badge badge-off">OFF</span>
+      </div>
+      <div class="global-row">
+        <div class="desc">
+          <strong>Pura site band karo</strong><br>
+          Sab pages maintenance page dikhain ge
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="global-toggle" onchange="toggleGlobal(this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Pages -->
+    <div class="section">
+      <div class="section-header">
+        <span style="font-size:1.3rem">📄</span>
+        <h3>Individual Pages</h3>
+      </div>
+      <div id="pages-list"></div>
+    </div>
+
+    <!-- Message Settings -->
+    <div class="section">
+      <div class="section-header">
+        <span style="font-size:1.3rem">💬</span>
+        <h3>Maintenance Message</h3>
+      </div>
+      <div class="msg-row">
+        <label>Message (users ko dikhega)</label>
+        <input id="msg-text" class="msg-input" type="text" placeholder="We're upgrading our systems. Back soon!">
+        <label style="margin-top:4px">Estimated Time (optional)</label>
+        <input id="msg-eta" class="msg-input" type="text" placeholder="e.g. 30 minutes, 2 hours">
+        <button class="save-btn" onclick="saveMessage()">💾 Save Message</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PAGES = [
+  { path: '/',                     name: 'Home Page',          icon: '🏠', color: '#6b7280' },
+  { path: '/youtube-downloader',   name: 'YouTube Downloader', icon: '▶️',  color: '#ef4444' },
+  { path: '/tiktok-downloader',    name: 'TikTok Downloader',  icon: '🎵', color: '#25F4EE' },
+  { path: '/instagram-downloader', name: 'Instagram',          icon: '📸', color: '#ec4899' },
+  { path: '/twitter-downloader',   name: 'Twitter / X',        icon: '🐦', color: '#9ca3af' },
+  { path: '/facebook-downloader',  name: 'Facebook',           icon: '👤', color: '#3b82f6' },
+  { path: '/snapchat-downloader',  name: 'Snapchat',           icon: '👻', color: '#facc15' },
+  { path: '/pinterest-downloader', name: 'Pinterest',          icon: '📌', color: '#ef4444' },
+];
+
+let SECRET = '';
+let state  = {};
+
+function doLogin() {
+  const s = document.getElementById('secret-input').value.trim();
+  if (!s) return;
+  fetch('/admin/maintenance?secret=' + encodeURIComponent(s))
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      SECRET = s;
+      state  = data;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('panel').style.display = 'block';
+      renderPanel();
+    })
+    .catch(() => {
+      document.getElementById('login-err').textContent = 'Wrong secret key.';
+    });
+}
+
+function doLogout() {
+  SECRET = ''; state = {};
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('panel').style.display = 'none';
+  document.getElementById('secret-input').value = '';
+  document.getElementById('login-err').textContent = '';
+}
+
+function renderPanel() {
+  // Global toggle
+  const gt = document.getElementById('global-toggle');
+  gt.checked = !!state.global;
+  const badge = document.getElementById('global-badge');
+  badge.textContent = state.global ? 'ON' : 'OFF';
+  badge.className   = 'badge ' + (state.global ? 'badge-on' : 'badge-off');
+
+  // Pages list
+  const list = document.getElementById('pages-list');
+  list.innerHTML = PAGES.map(p => {
+    const on = state.pages?.[p.path] === true;
+    return \`<div class="page-row">
+      <div class="page-info">
+        <div class="page-icon" style="background:\${p.color}22;border:1px solid \${p.color}44">\${p.icon}</div>
+        <div>
+          <div class="page-name">
+            <span class="status-dot \${on ? 'dot-red' : 'dot-green'}"></span>
+            \${p.name}
+          </div>
+          <div class="page-path">\${p.path}</div>
+        </div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" \${on ? 'checked' : ''} onchange="togglePage('\${p.path}', this.checked)">
+        <span class="slider"></span>
+      </label>
+    </div>\`;
+  }).join('');
+
+  // Message
+  document.getElementById('msg-text').value = state.message || '';
+  document.getElementById('msg-eta').value  = state.estimatedTime || '';
+}
+
+function api(body) {
+  return fetch('/admin/maintenance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: SECRET, ...body }),
+  }).then(r => r.json());
+}
+
+function toggleGlobal(on) {
+  api({ global: on }).then(d => { state = d.maintenance; renderPanel(); showToast(on ? '🌐 Site maintenance ON' : '✅ Site live again'); });
+}
+
+function togglePage(path, on) {
+  api({ page: path, enabled: on }).then(d => { state = d.maintenance; renderPanel(); showToast(on ? \`🔧 \${path} → maintenance\` : \`✅ \${path} → live\`); });
+}
+
+function saveMessage() {
+  const msg = document.getElementById('msg-text').value.trim();
+  const eta = document.getElementById('msg-eta').value.trim();
+  api({ message: msg, estimatedTime: eta }).then(d => { state = d.maintenance; showToast('💾 Message saved!'); });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2800);
+}
+</script>
+</body>
+</html>`);
+});
+
 // ─── CDN URL Cache ─────────────────────────────────────────────────────────────
 // Pre-fetched during /api/info so /api/download can start instantly (no second yt-dlp call).
 const cdnCache = new Map();
