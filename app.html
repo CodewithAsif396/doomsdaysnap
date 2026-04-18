@@ -96,8 +96,29 @@
         .gradient-bg { background: linear-gradient(135deg,#a855f7 0%,#ec4899 100%); }
         .gradient-bg:hover { background: linear-gradient(135deg,#9333ea 0%,#db2777 100%); }
 
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0f0f0f; }
+        #security-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #0f0f0f;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease-in-out, visibility 0.8s;
+        }
+        .security-shield {
+            font-size: 60px; color: #a855f7;
+            filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.4));
+            animation: shield-pulse 2s infinite ease-in-out;
+        }
+        @keyframes shield-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+        }
+        .loader-bar {
+            width: 200px; h-1.5 bg-white/5 rounded-full mt-8 overflow-hidden relative;
+        }
+        .loader-progress {
+            position: absolute; top: 0; left: 0; height: 100%;
+            background: linear-gradient(90deg, #a855f7, #ec4899);
+            width: 0%; transition: width 1.5s linear;
+        }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #555; }
 
@@ -198,6 +219,21 @@
     </style>
 </head>
 <body class="antialiased relative min-h-screen flex flex-col font-sans">
+
+    <!-- Cloudflare-style Security Challenge -->
+    <div id="security-overlay">
+        <div class="security-shield">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2 class="text-white text-xl font-bold mt-6 tracking-tight">Checking your connection...</h2>
+        <p class="text-gray-400 text-sm mt-2">DDoS protection by Doomsdaysnap Shield</p>
+        
+        <div class="w-48 h-1 bg-white/5 rounded-full mt-8 overflow-hidden relative">
+            <div id="security-progress" class="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-[2000ms] ease-out" style="width: 0%"></div>
+        </div>
+        
+        <p class="text-gray-500 text-[10px] mt-10 uppercase tracking-[0.2em]">Verifying browser integrity</p>
+    </div>
 
     <!-- Announcement Banner (controlled by AdPanel) -->
     <div id="announcement-bar" style="display:none;position:relative;z-index:60">
@@ -667,7 +703,37 @@
 
     document.addEventListener('DOMContentLoaded', function () {
 
-        // ── Selectors ────────────────────────────────────────────────────────
+        // ── Security Challenge Logic (Bot Prevention) ────────────────────────
+    (function() {
+        // Show only once per session to avoid annoying users
+        if (sessionStorage.getItem('security_check_passed')) {
+            document.getElementById('security-overlay').style.display = 'none';
+            return;
+        }
+        
+        // Start "verification"
+        window.addEventListener('load', function() {
+            const overlay = document.getElementById('security-overlay');
+            const progress = document.getElementById('security-progress');
+            
+            setTimeout(() => {
+                progress.style.width = '100%';
+                
+                setTimeout(() => {
+                    overlay.style.opacity = '0';
+                    overlay.style.visibility = 'hidden';
+                    sessionStorage.setItem('security_check_passed', 'true');
+                    
+                    // Final cleanup
+                    setTimeout(() => {
+                        overlay.remove();
+                    }, 800);
+                }, 2200); // Challenge duration
+            }, 200);
+        });
+    })();
+
+    // ── Toast System ─────────────────────────────────────────────────────
         const mobileBtn     = document.getElementById('mobile-menu-btn');
         const mobileMenu    = document.getElementById('mobile-menu');
         const tabs          = document.querySelectorAll('.platform-tab');
