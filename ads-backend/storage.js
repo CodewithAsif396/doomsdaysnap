@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS = {
     social:       { twitter: '', instagram: '', youtube: '', discord: '', tiktok: '' },
     features:     { maintenanceMode: false, showAds: true, downloadLimit: 40 },
     announcement: { enabled: false, text: '', linkUrl: '', linkText: 'Learn more', style: 'info' },
-    hero:         { headline: 'Download Any Video', accent: 'Without Limits.', sub: 'The fastest way to save high-quality media from YouTube, TikTok, Instagram, and Twitter. Zero watermarks, 4K support, completely secure.', ctaText: 'Start Downloading Now', badge: '100% Free & Fast Proxy Extraction' },
+    hero:         { headline: 'Download Any Video', accent: 'Without Limits.', sub: 'The fastest way to save high-quality media from YouTube, TikTok, Instagram, Twitter, Facebook, and Snapchat. Zero watermarks, 4K support, completely secure.', ctaText: 'Start Downloading Now', badge: '100% Free & Fast Proxy Extraction' },
 };
 
 function readJSON(file, fallback) {
