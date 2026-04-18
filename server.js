@@ -1078,86 +1078,111 @@ app.get('/api/download', rateLimit, async (req, res) => {
 
         } else if (isFacebook || isSnapchat || isPinterest) {
             const uaData  = getRandomUA();
-            const referer = isFacebook  ? 'https://www.facebook.com/'
-                          : isSnapchat  ? 'https://www.snapchat.com/'
+            const referer = isFacebook ? 'https://www.facebook.com/'
+                          : isSnapchat ? 'https://www.snapchat.com/'
                           : 'https://www.pinterest.com/';
 
-            const extraArgs = [
+            const ytdlpArgs = [
                 '--user-agent', uaData.ua,
                 '--referer', referer,
                 '--merge-output-format', 'mp4',
                 '--no-check-certificate',
+                '--force-ipv4',
+                '--geo-bypass',
             ];
-            if (COOKIES_FILE) extraArgs.push('--cookies', COOKIES_FILE);
-
+            if (COOKIES_FILE) ytdlpArgs.push('--cookies', COOKIES_FILE);
             const cdnHeaders = { 'User-Agent': uaData.ua, 'Referer': referer };
 
-            // Pinterest: cobalt first
+            // ── Pinterest ─────────────────────────────────────────────────────
             if (isPinterest) {
                 const cobalt = await cobaltExtract(safeUrl).catch(() => null);
                 if (cobalt?.url) {
                     const ok = await pipeCdnUrl(cobalt.url, res, req, cdnHeaders);
                     if (ok) return;
                 }
-                spawnMergeStream(safeUrl, format, res, req, extraArgs);
+                spawnMergeStream(safeUrl, format, res, req, ytdlpArgs);
                 return;
             }
 
-            // Facebook / Snapchat: social_server (Python, 5 methods) → cobalt → yt-dlp
             const platform = isFacebook ? 'facebook' : 'snapchat';
-            console.log(`[DOWNLOAD] ${platform} → social_server`);
 
-            const socialBody = JSON.stringify({ url: safeUrl });
-            const socialResult = await new Promise((resolve) => {
-                const opts = {
-                    hostname: '127.0.0.1', port: SOCIAL_PORT, path: '/social/download', method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(socialBody) },
-                };
-                const r2 = http.request(opts, (r) => {
-                    let d = ''; r.on('data', c => d += c);
-                    r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
+            // ── helper: call social_server and proxy the result ───────────────
+            async function trySocialServer() {
+                const body = JSON.stringify({ url: safeUrl });
+                const result = await new Promise((resolve) => {
+                    const r2 = http.request(
+                        { hostname: '127.0.0.1', port: SOCIAL_PORT, path: '/social/download',
+                          method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } },
+                        (r) => { let d = ''; r.on('data', c => d += c); r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } }); }
+                    );
+                    r2.on('error', () => resolve(null));
+                    setTimeout(() => resolve(null), 25000);
+                    r2.write(body); r2.end();
                 });
-                r2.on('error', () => resolve(null));
-                setTimeout(() => resolve(null), 25000);
-                r2.write(socialBody); r2.end();
-            });
+                if (!result?.video_url) return false;
 
-            if (socialResult?.video_url) {
                 console.log(`[DOWNLOAD] social_server ok → proxying ${platform}`);
-                const proxyPath = `/social/proxy?url=${encodeURIComponent(socialResult.video_url)}&platform=${platform}`;
-                const proxyReq = http.request(
-                    { hostname: '127.0.0.1', port: SOCIAL_PORT, path: proxyPath, method: 'GET',
-                      headers: { 'Range': req.headers['range'] || '' } },
-                    (r) => {
-                        const outHeaders = {
-                            'Content-Type': 'video/mp4',
-                            'Content-Disposition': `attachment; filename="${platform}_video.mp4"`,
-                            'Accept-Ranges': 'bytes',
-                        };
-                        if (r.headers['content-length']) outHeaders['Content-Length'] = r.headers['content-length'];
-                        res.writeHead(r.statusCode === 206 ? 206 : 200, outHeaders);
-                        r.pipe(res);
-                    }
-                );
-                proxyReq.on('error', (e) => {
-                    console.error('[DOWNLOAD] social proxy error:', e.message);
-                    if (!res.headersSent) res.status(500).send('Download failed');
+                return new Promise((resolve) => {
+                    const proxyPath = `/social/proxy?url=${encodeURIComponent(result.video_url)}&platform=${platform}`;
+                    const pr = http.request(
+                        { hostname: '127.0.0.1', port: SOCIAL_PORT, path: proxyPath, method: 'GET' },
+                        (r) => {
+                            if (r.statusCode !== 200 && r.statusCode !== 206) { r.resume(); resolve(false); return; }
+                            const h = { 'Content-Type': 'video/mp4', 'Accept-Ranges': 'bytes',
+                                        'Content-Disposition': `attachment; filename="${platform}_video.mp4"` };
+                            if (r.headers['content-length']) h['Content-Length'] = r.headers['content-length'];
+                            res.writeHead(200, h);
+                            r.pipe(res);
+                            r.on('end', () => resolve(true));
+                            r.on('error', () => resolve(false));
+                        }
+                    );
+                    pr.on('error', () => resolve(false));
+                    pr.end();
                 });
-                proxyReq.end();
+            }
+
+            // ── Facebook: yt-dlp (with cookies) → social_server → cobalt ─────
+            if (isFacebook) {
+                console.log('[DOWNLOAD] Facebook → yt-dlp with cookies');
+                // Try --get-url first (fast, direct CDN pipe)
+                const urls = await getDirectUrls(safeUrl, format, ytdlpArgs);
+                if (urls.length === 1) {
+                    const ok = await pipeCdnUrl(urls[0], res, req, cdnHeaders);
+                    if (ok) return;
+                } else if (urls.length >= 2) {
+                    spawnMergeStream(safeUrl, format, res, req, ytdlpArgs);
+                    return;
+                }
+                // yt-dlp --get-url failed, try social_server
+                console.log('[DOWNLOAD] Facebook yt-dlp get-url failed → social_server');
+                const socialOk = await trySocialServer();
+                if (socialOk) return;
+                // cobalt fallback
+                console.log('[DOWNLOAD] Facebook social_server failed → cobalt');
+                const cobalt = await cobaltExtract(safeUrl).catch(() => null);
+                if (cobalt?.url) {
+                    const ok = await pipeCdnUrl(cobalt.url, res, req, cdnHeaders);
+                    if (ok) return;
+                }
+                // absolute last resort - yt-dlp merge stream
+                console.log('[DOWNLOAD] Facebook cobalt failed → yt-dlp spawnMerge');
+                if (!res.headersSent) spawnMergeStream(safeUrl, format, res, req, ytdlpArgs);
                 return;
             }
 
-            // cobalt fallback
-            console.log(`[DOWNLOAD] social_server failed → cobalt for ${platform}`);
-            const cobalt2 = await cobaltExtract(safeUrl).catch(() => null);
-            if (cobalt2?.url) {
-                const ok = await pipeCdnUrl(cobalt2.url, res, req, cdnHeaders);
+            // ── Snapchat: social_server → cobalt → yt-dlp ────────────────────
+            console.log('[DOWNLOAD] Snapchat → social_server');
+            const snapSocialOk = await trySocialServer();
+            if (snapSocialOk) return;
+
+            console.log('[DOWNLOAD] Snapchat social_server failed → cobalt');
+            const cobaltSnap = await cobaltExtract(safeUrl).catch(() => null);
+            if (cobaltSnap?.url) {
+                const ok = await pipeCdnUrl(cobaltSnap.url, res, req, cdnHeaders);
                 if (ok) return;
             }
-
-            // yt-dlp last resort
-            console.log(`[DOWNLOAD] all failed → yt-dlp for ${platform}`);
-            await tryDirectThenMerge(safeUrl, format, res, req, extraArgs, cdnHeaders);
+            if (!res.headersSent) spawnMergeStream(safeUrl, format, res, req, ytdlpArgs);
 
         } else {
             console.log(`[DOWNLOAD] generic → yt-dlp stream`);
