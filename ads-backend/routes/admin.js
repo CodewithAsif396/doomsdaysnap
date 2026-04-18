@@ -2,9 +2,22 @@ const express = require('express');
 const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const fs      = require('fs');
+const path    = require('path');
 
 const { requireAuth, JWT_SECRET } = require('../middleware/auth');
 const { ads } = require('../storage');
+
+// maintenance.json sits one level up (in the main doomsdaysnap folder)
+const MAINTENANCE_FILE = path.join(__dirname, '..', '..', 'maintenance.json');
+
+function loadMnt() {
+    try { return JSON.parse(fs.readFileSync(MAINTENANCE_FILE, 'utf8')); }
+    catch { return { global: false, pages: {}, message: '', estimatedTime: '' }; }
+}
+function saveMnt(data) {
+    fs.writeFileSync(MAINTENANCE_FILE, JSON.stringify(data, null, 2));
+}
 
 const router = express.Router();
 let ADMIN_HASH = null;
@@ -103,6 +116,23 @@ router.get('/stats', requireAuth, (_req, res) => {
         return a;
     }, { impressions: 0, clicks: 0 });
     res.json({ totalAds: all.length, activeAds: all.filter(a => a.active).length, ...totals });
+});
+
+// ─── Maintenance ─────────────────────────────────────────────────────────────
+router.get('/maintenance', requireAuth, (_req, res) => {
+    res.json(loadMnt());
+});
+
+router.post('/maintenance', requireAuth, (req, res) => {
+    const { page, enabled, global: globalMode, message, estimatedTime } = req.body || {};
+    const data = loadMnt();
+    if (typeof globalMode === 'boolean') data.global = globalMode;
+    if (page) data.pages[page] = enabled === true;
+    if (message  !== undefined) data.message       = message;
+    if (estimatedTime !== undefined) data.estimatedTime = estimatedTime;
+    saveMnt(data);
+    console.log('[Maintenance] Updated:', JSON.stringify(data));
+    res.json(data);
 });
 
 module.exports = { router, setAdminHash };

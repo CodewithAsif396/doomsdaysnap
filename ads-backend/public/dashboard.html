@@ -293,6 +293,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);displ
     <button class="nav-item" data-page="embed">
       <i class="fas fa-code"></i><span>Embed Codes</span>
     </button>
+    <button class="nav-item" data-page="maintenance">
+      <i class="fas fa-wrench"></i><span>Maintenance</span>
+    </button>
   </nav>
   <div class="sidebar-footer">
     <button class="logout-btn" onclick="logout()">
@@ -766,6 +769,53 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);displ
       </div>
     </div>
 
+    <!-- ── Maintenance Mode ──────────────────────────────────────────────── -->
+    <div class="page" id="page-maintenance">
+      <div class="section-header"><h2>Maintenance Mode</h2></div>
+
+      <!-- Global toggle -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header"><i class="fas fa-globe"></i><h3>Global Maintenance</h3></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+          <div>
+            <p style="font-weight:600;color:var(--text);margin-bottom:4px">Pura site band karo</p>
+            <p style="color:var(--muted);font-size:.85rem">Sab pages maintenance page dikhainge</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="global-lbl" style="font-size:.82rem;font-weight:600;min-width:28px">OFF</span>
+            <label class="toggle" id="global-toggle-wrap">
+              <input type="checkbox" id="global-chk" onchange="mntToggleGlobal(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per-page toggles -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header"><i class="fas fa-file-lines"></i><h3>Individual Pages</h3></div>
+        <div id="mnt-pages-list"></div>
+      </div>
+
+      <!-- Message settings -->
+      <div class="card">
+        <div class="card-header"><i class="fas fa-comment-dots"></i><h3>Maintenance Message</h3></div>
+        <div style="display:flex;flex-direction:column;gap:.9rem">
+          <div class="form-group">
+            <label>Message (users ko dikhega)</label>
+            <input type="text" id="mnt-msg" class="form-control" placeholder="We're upgrading our systems. Back soon!">
+          </div>
+          <div class="form-group">
+            <label>Estimated Time <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+            <input type="text" id="mnt-eta" class="form-control" placeholder="e.g. 30 minutes, 2 hours">
+          </div>
+          <div>
+            <button class="btn btn-primary" onclick="mntSaveMessage()"><i class="fas fa-save"></i> Save Message</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div><!-- /main-wrapper -->
 
@@ -916,7 +966,7 @@ function toast(msg, type = 'success') {
 }
 
 // ─── Navigation ────────────────────────────────────────────────────────────
-const PAGE_TITLES = { overview:'Overview', ads:'Manage Ads', settings:'Site Settings', embed:'Embed Codes' };
+const PAGE_TITLES = { overview:'Overview', ads:'Manage Ads', settings:'Site Settings', embed:'Embed Codes', maintenance:'Maintenance' };
 
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -929,10 +979,11 @@ function showPage(name) {
 }
 
 function loadPage(name) {
-  if (name === 'overview')  loadOverview();
-  if (name === 'ads')       loadAds();
-  if (name === 'settings')  loadSettings();
-  if (name === 'embed')     loadEmbed();
+  if (name === 'overview')    loadOverview();
+  if (name === 'ads')         loadAds();
+  if (name === 'settings')    loadSettings();
+  if (name === 'embed')       loadEmbed();
+  if (name === 'maintenance') loadMaintenance();
 }
 
 document.querySelectorAll('.nav-item').forEach(btn => {
@@ -1401,6 +1452,86 @@ function copyEl(id) {
 function copyText(btnOrText, text) {
   var s = text !== undefined ? text : btnOrText;
   navigator.clipboard.writeText(s).then(() => toast('Copied!', 'info'));
+}
+
+// ─── Maintenance Mode ──────────────────────────────────────────────────────
+const MNT_PAGES = [
+  { path: '/',                     name: 'Home Page',          icon: '🏠' },
+  { path: '/youtube-downloader',   name: 'YouTube Downloader', icon: '▶️'  },
+  { path: '/tiktok-downloader',    name: 'TikTok Downloader',  icon: '🎵' },
+  { path: '/instagram-downloader', name: 'Instagram',          icon: '📸' },
+  { path: '/twitter-downloader',   name: 'Twitter / X',        icon: '🐦' },
+  { path: '/facebook-downloader',  name: 'Facebook',           icon: '👤' },
+  { path: '/snapchat-downloader',  name: 'Snapchat',           icon: '👻' },
+  { path: '/pinterest-downloader', name: 'Pinterest',          icon: '📌' },
+];
+
+async function mntApi(path, method = 'GET', body = null) {
+  try {
+    return await api(path, { method, body: body || undefined });
+  } catch(e) { toast(e.message, 'error'); return null; }
+}
+
+async function loadMaintenance() {
+  const data = await mntApi('/admin/maintenance');
+  if (!data) return;
+  renderMntPanel(data);
+}
+
+function renderMntPanel(data) {
+  // Global toggle
+  const gc = document.getElementById('global-chk');
+  const gl = document.getElementById('global-lbl');
+  if (gc) { gc.checked = !!data.global; if(gl){gl.textContent = data.global ? 'ON' : 'OFF'; gl.style.color = data.global ? 'var(--red)' : 'var(--green)';} }
+
+  // Pages list
+  const list = document.getElementById('mnt-pages-list');
+  if (!list) return;
+  list.innerHTML = MNT_PAGES.map(p => {
+    const on = data.pages?.[p.path] === true;
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:1.2rem">${p.icon}</span>
+        <div>
+          <div style="font-size:.9rem;font-weight:500;color:var(--text)">${p.name}</div>
+          <div style="font-size:.76rem;color:var(--muted)">${p.path}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:.8rem;font-weight:600;min-width:24px;color:${on ? 'var(--red)':'var(--green)'}">${on ? 'ON':'OFF'}</span>
+        <label class="toggle">
+          <input type="checkbox" ${on ? 'checked' : ''} onchange="mntTogglePage('${p.path}',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>`;
+  }).join('');
+  // Last row no border
+  const rows = list.querySelectorAll('div[style*="border-bottom"]');
+  if (rows.length) rows[rows.length-1].style.borderBottom = 'none';
+
+  // Message fields
+  const msgEl = document.getElementById('mnt-msg');
+  const etaEl = document.getElementById('mnt-eta');
+  if (msgEl) msgEl.value = data.message || '';
+  if (etaEl) etaEl.value = data.estimatedTime || '';
+}
+
+async function mntToggleGlobal(on) {
+  const data = await mntApi('/admin/maintenance', 'POST', { global: on });
+  if (data) { renderMntPanel(data); toast(on ? '🌐 Site maintenance ON' : '✅ Site live', on ? 'warning' : 'success'); }
+}
+
+async function mntTogglePage(path, on) {
+  const data = await mntApi('/admin/maintenance', 'POST', { page: path, enabled: on });
+  if (data) { renderMntPanel(data); toast(on ? `🔧 ${path} → maintenance` : `✅ ${path} → live`, on ? 'warning' : 'success'); }
+}
+
+async function mntSaveMessage() {
+  const msg = document.getElementById('mnt-msg').value.trim();
+  const eta = document.getElementById('mnt-eta').value.trim();
+  const data = await mntApi('/admin/maintenance', 'POST', { message: msg, estimatedTime: eta });
+  if (data) toast('Message saved!', 'success');
 }
 
 // ─── Init ──────────────────────────────────────────────────────────────────
