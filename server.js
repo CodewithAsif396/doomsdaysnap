@@ -1103,8 +1103,60 @@ app.get('/api/download', rateLimit, async (req, res) => {
                 return;
             }
 
-            // Facebook / Snapchat: yt-dlp (same as getInfo — proven to work)
-            console.log(`[DOWNLOAD] ${isFacebook ? 'Facebook' : 'Snapchat'} → yt-dlp direct`);
+            // Facebook / Snapchat: social_server (Python, 5 methods) → cobalt → yt-dlp
+            const platform = isFacebook ? 'facebook' : 'snapchat';
+            console.log(`[DOWNLOAD] ${platform} → social_server`);
+
+            const socialBody = JSON.stringify({ url: safeUrl });
+            const socialResult = await new Promise((resolve) => {
+                const opts = {
+                    hostname: '127.0.0.1', port: SOCIAL_PORT, path: '/social/download', method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(socialBody) },
+                };
+                const r2 = http.request(opts, (r) => {
+                    let d = ''; r.on('data', c => d += c);
+                    r.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
+                });
+                r2.on('error', () => resolve(null));
+                setTimeout(() => resolve(null), 25000);
+                r2.write(socialBody); r2.end();
+            });
+
+            if (socialResult?.video_url) {
+                console.log(`[DOWNLOAD] social_server ok → proxying ${platform}`);
+                const proxyPath = `/social/proxy?url=${encodeURIComponent(socialResult.video_url)}&platform=${platform}`;
+                const proxyReq = http.request(
+                    { hostname: '127.0.0.1', port: SOCIAL_PORT, path: proxyPath, method: 'GET',
+                      headers: { 'Range': req.headers['range'] || '' } },
+                    (r) => {
+                        const outHeaders = {
+                            'Content-Type': 'video/mp4',
+                            'Content-Disposition': `attachment; filename="${platform}_video.mp4"`,
+                            'Accept-Ranges': 'bytes',
+                        };
+                        if (r.headers['content-length']) outHeaders['Content-Length'] = r.headers['content-length'];
+                        res.writeHead(r.statusCode === 206 ? 206 : 200, outHeaders);
+                        r.pipe(res);
+                    }
+                );
+                proxyReq.on('error', (e) => {
+                    console.error('[DOWNLOAD] social proxy error:', e.message);
+                    if (!res.headersSent) res.status(500).send('Download failed');
+                });
+                proxyReq.end();
+                return;
+            }
+
+            // cobalt fallback
+            console.log(`[DOWNLOAD] social_server failed → cobalt for ${platform}`);
+            const cobalt2 = await cobaltExtract(safeUrl).catch(() => null);
+            if (cobalt2?.url) {
+                const ok = await pipeCdnUrl(cobalt2.url, res, req, cdnHeaders);
+                if (ok) return;
+            }
+
+            // yt-dlp last resort
+            console.log(`[DOWNLOAD] all failed → yt-dlp for ${platform}`);
             await tryDirectThenMerge(safeUrl, format, res, req, extraArgs, cdnHeaders);
 
         } else {
