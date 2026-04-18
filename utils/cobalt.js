@@ -7,6 +7,7 @@ const COBALT_INSTANCES = [
     'api.cobalt.tools',
     'cobalt.privacydev.net',
     'cobalt.api.timelessnesses.me',
+    'co.wuk.sh',
 ];
 
 function cobaltRequest(hostname, url, opts = {}) {

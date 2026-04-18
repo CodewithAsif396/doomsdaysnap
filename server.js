@@ -1089,9 +1089,20 @@ app.get('/api/download', rateLimit, async (req, res) => {
                 return;
             }
 
-            // ── Facebook / Snapchat: Python social_server (port 5001) ─────────
-            console.log(`[DOWNLOAD] ${isFacebook ? 'Facebook' : 'Snapchat'} → social_server`);
+            // ── Facebook / Snapchat: cobalt.tools first, then social_server ────
             const platform = isFacebook ? 'facebook' : 'snapchat';
+            const referer  = isFacebook ? 'https://www.facebook.com/' : 'https://www.snapchat.com/';
+
+            // Try cobalt.tools (supports Facebook & Snapchat natively)
+            console.log(`[DOWNLOAD] ${platform} → cobalt.tools`);
+            const cobalt = await cobaltExtract(safeUrl).catch(() => null);
+            if (cobalt?.url) {
+                const ok = await pipeCdnUrl(cobalt.url, res, req, { 'Referer': referer });
+                if (ok) return;
+            }
+
+            // Fallback: Python social_server
+            console.log(`[DOWNLOAD] cobalt failed → social_server for ${platform}`);
             const socialBody = JSON.stringify({ url: safeUrl });
             const socialResult = await new Promise((resolve) => {
                 const opts = {
@@ -1107,11 +1118,9 @@ app.get('/api/download', rateLimit, async (req, res) => {
             });
 
             if (socialResult?.video_url) {
-                console.log(`[DOWNLOAD] social_server got URL for ${platform}, proxying`);
                 const proxyPath = `/social/proxy?url=${encodeURIComponent(socialResult.video_url)}&platform=${platform}`;
                 const proxyReq = http.request(
-                    { hostname: '127.0.0.1', port: SOCIAL_PORT, path: proxyPath, method: 'GET',
-                      headers: { 'Range': req.headers['range'] || 'bytes=0-' } },
+                    { hostname: '127.0.0.1', port: SOCIAL_PORT, path: proxyPath, method: 'GET' },
                     (r) => {
                         res.writeHead(r.statusCode, {
                             'Content-Type': 'video/mp4',
@@ -1127,7 +1136,12 @@ app.get('/api/download', rateLimit, async (req, res) => {
                 return;
             }
 
-            if (!res.headersSent) res.status(500).send(`${platform} video download failed. Make sure the video is public.`);
+            // Last resort: yt-dlp
+            console.log(`[DOWNLOAD] social_server failed → yt-dlp for ${platform}`);
+            const uaData = getRandomUA();
+            spawnMergeStream(safeUrl, format, res, req, [
+                '--user-agent', uaData.ua, '--referer', referer, '--merge-output-format', 'mp4',
+            ]);
 
         } else {
             console.log(`[DOWNLOAD] generic → yt-dlp stream`);
