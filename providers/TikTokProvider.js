@@ -7,9 +7,12 @@ function extractVideoId(url) {
     return m ? m[1] : null;
 }
 
-// Resolve vt.tiktok.com / vm.tiktok.com short URLs → full URL containing video ID
+// Resolve short TikTok URLs → full URL containing video ID
+// Handles: vm.tiktok.com, vt.tiktok.com, www.tiktok.com/t/XXXXX (app share links)
 function resolveTikTokUrl(url) {
-    if (!url.includes('vt.tiktok.com') && !url.includes('vm.tiktok.com')) return Promise.resolve(url);
+    const needsResolve = url.includes('vt.tiktok.com') || url.includes('vm.tiktok.com')
+        || /tiktok\.com\/t\/[A-Za-z0-9]+/.test(url);
+    if (!needsResolve) return Promise.resolve(url);
     return new Promise((resolve) => {
         const req = https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
             res.resume();

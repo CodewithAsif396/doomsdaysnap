@@ -1107,13 +1107,24 @@ app.get('/api/download', rateLimit, async (req, res) => {
             });
 
             if (socialResult?.video_url) {
-                console.log(`[DOWNLOAD] social_server got URL for ${platform}`);
-                const referer = isFacebook ? 'https://www.facebook.com/' : 'https://www.snapchat.com/';
-                const ok = await pipeCdnUrl(socialResult.video_url, res, req, {
-                    'Referer': referer,
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                });
-                if (ok) return;
+                console.log(`[DOWNLOAD] social_server got URL for ${platform}, proxying`);
+                const proxyPath = `/social/proxy?url=${encodeURIComponent(socialResult.video_url)}&platform=${platform}`;
+                const proxyReq = http.request(
+                    { hostname: '127.0.0.1', port: SOCIAL_PORT, path: proxyPath, method: 'GET',
+                      headers: { 'Range': req.headers['range'] || 'bytes=0-' } },
+                    (r) => {
+                        res.writeHead(r.statusCode, {
+                            'Content-Type': 'video/mp4',
+                            'Content-Disposition': `attachment; filename="${platform}_video.mp4"`,
+                            'Content-Length': r.headers['content-length'] || '',
+                            'Accept-Ranges': 'bytes',
+                        });
+                        r.pipe(res);
+                    }
+                );
+                proxyReq.on('error', () => { if (!res.headersSent) res.status(500).send('Download failed'); });
+                proxyReq.end();
+                return;
             }
 
             if (!res.headersSent) res.status(500).send(`${platform} video download failed. Make sure the video is public.`);
