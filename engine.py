@@ -1,44 +1,71 @@
+import os
 import json
-import traceback
 import yt_dlp
+
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+PLAYER_CLIENTS = [
+    ['tvhtml5_embedded'],
+    ['android_vr'],
+    ['ios', 'android'],
+    ['android'],
+    ['web_embedded'],
+    ['web', 'mweb'],
+]
+
+
+def find_cookie_file():
+    for name in ["cookies.txt", "cookies (1).txt"]:
+        path = os.path.join(PROJECT_DIR, name)
+        if os.path.exists(path) and os.path.getsize(path) > 500:
+            return path
+    return None
+
 
 class ExplodeEngine:
     """
-    Hybrid Pro Engine: Uses yt-dlp for robust metadata extraction
-    to bypass signature errors (400/500/RegexMatchError).
+    Hybrid Pro Engine V2: cookie support + player client rotation.
+    Reads cookies fresh from disk on every call.
     """
-    
+
     @staticmethod
     def get_info(url: str):
-        print(f"[HybridPro] Handshaking: {url}")
-        try:
-            ydl_opts = {
+        print(f"[HybridPro] Extracting: {url}")
+        last_err = None
+
+        for clients in PLAYER_CLIENTS:
+            opts = {
                 'quiet': True,
                 'no_warnings': True,
                 'extract_flat': False,
-                'extractor_args': {
-                    'youtube': {
-                        'player_client': ['android', 'ios', 'web', 'mweb', 'web_embedded'],
-                    }
-                }
+                'cookiefile': find_cookie_file(),
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Origin': 'https://www.youtube.com',
+                    'Referer': 'https://www.youtube.com/',
+                },
+                'extractor_args': {'youtube': {'player_client': clients}},
             }
-            
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-                
+
+            try:
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    info = ydl.extract_info(url, download=False)
+
+                if not info:
+                    continue
+
+                formats = info.get('formats', [])
                 video_streams = []
                 audio_streams = []
-                
-                formats = info.get('formats', [])
+
                 for f in formats:
-                    # Filter for DASH adaptive streams (Video only or Audio only)
                     vcodec = f.get('vcodec', 'none')
                     acodec = f.get('acodec', 'none')
                     ext = f.get('ext', '')
                     filesize = f.get('filesize') or f.get('filesize_approx') or 0
-                    
+
                     if vcodec != 'none' and acodec == 'none':
-                        # Video-only (DASH)
                         video_streams.append({
                             "itag": f.get('format_id'),
                             "resolution": f"{f.get('height')}p" if f.get('height') else "0p",
@@ -49,7 +76,6 @@ class ExplodeEngine:
                             "fps": f.get('fps', 30)
                         })
                     elif acodec != 'none' and vcodec == 'none':
-                        # Audio-only (DASH)
                         audio_streams.append({
                             "itag": f.get('format_id'),
                             "ext": ext,
@@ -57,30 +83,26 @@ class ExplodeEngine:
                             "bitrate": f"{int(f.get('abr', 0))}kbps" if f.get('abr') else "0kbps",
                             "filesize": filesize
                         })
-                
-                # Robust Sorting for Video
-                def get_res_val(v):
-                    res_str = v["resolution"].replace("p", "")
-                    try: return int(res_str)
+
+                def get_res(v):
+                    try: return int(v["resolution"].replace("p", ""))
                     except: return 0
 
-                video_streams.sort(key=lambda x: (get_res_val(x), x.get("fps", 0)), reverse=True)
-                
-                seen_res = set()
+                video_streams.sort(key=lambda x: (get_res(x), x.get("fps", 0)), reverse=True)
+                seen = set()
                 final_v = []
                 for v in video_streams:
-                    if v["resolution"] not in seen_res:
+                    if v["resolution"] not in seen:
                         final_v.append(v)
-                        seen_res.add(v["resolution"])
+                        seen.add(v["resolution"])
 
-                # Robust Sorting for Audio
-                def get_bitrate_val(a):
-                    bitrate_str = a["bitrate"].replace("kbps", "").strip()
-                    try: return int(bitrate_str)
+                def get_abr(a):
+                    try: return int(a["bitrate"].replace("kbps", "").strip())
                     except: return 0
 
-                audio_streams.sort(key=get_bitrate_val, reverse=True)
+                audio_streams.sort(key=get_abr, reverse=True)
 
+                print(f"[HybridPro] OK with {clients} | cookies: {find_cookie_file() or 'NONE'}")
                 return {
                     "title": info.get('title', 'Unknown Title'),
                     "thumbnail": info.get('thumbnail', ''),
@@ -89,12 +111,21 @@ class ExplodeEngine:
                     "uploader": info.get('uploader', 'Unknown'),
                     "video_streams": final_v,
                     "audio_streams": audio_streams,
-                    "engine": "HYBRID_PRO_V1"
+                    "engine": "HYBRID_PRO_V2"
                 }
-        except Exception as e:
-            traceback.print_exc()
-            return {"error": str(e)}
+
+            except Exception as e:
+                last_err = e
+                err_str = str(e).lower()
+                if "private video" in err_str or "invalid youtube url" in err_str:
+                    return {"error": str(e)}
+                print(f"[HybridPro] {clients} failed: {str(e)[:100]}")
+                continue
+
+        err_msg = str(last_err) if last_err else "All clients failed"
+        return {"error": err_msg}
+
 
 if __name__ == "__main__":
-    test_url = "https://www.youtube.com/watch?v=hxMNYkLN7tI"
+    test_url = "https://www.youtube.com/watch?v=BaW_jenozKc"
     print(json.dumps(ExplodeEngine.get_info(test_url), indent=2))
