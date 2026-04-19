@@ -75,7 +75,7 @@ class ExplodeEngine:
     @staticmethod
     async def get_info(url: str):
         # Merge formats to get both adaptive and progressive (Exclude HLS/m3u8)
-        opts = {**YDL_BASE_OPTS, 'format': '(bestvideo+bestaudio/best)[protocol^=http]'}
+        opts = {**YDL_BASE_OPTS, 'format': 'bestvideo+bestaudio/best'}
 
         def extract():
             with yt_dlp.YoutubeDL(opts) as ydl:
@@ -235,9 +235,9 @@ async def download(url: str, height: Optional[str] = None, type: Optional[str] =
         if is_audio:
             fmt = 'bestaudio/best'
         elif h:
-            fmt = f'bestvideo[height<={h}][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<={h}]+bestaudio/best[height<={h}]'
+            fmt = f'bestvideo[height<={h}]+bestaudio/best'
         else:
-            fmt = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best'
+            fmt = 'bestvideo+bestaudio/best'
 
         def get_title():
             with yt_dlp.YoutubeDL({**YDL_BASE_OPTS, 'quiet': True}) as ydl:
