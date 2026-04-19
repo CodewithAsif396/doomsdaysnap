@@ -440,6 +440,7 @@ const LEGAL_DATA = {
                 .replace(/<title>.*?<\/title>/, `<title>${legal.title}</title>`)
                 .replace(/<meta name="description" content=".*?">/, `<meta name="description" content="${legal.desc}">`)
                 .replace('id="downloader-input-section"', 'id="downloader-input-section" style="display:none !important"')
+                .replace('id="hero-header"', 'id="hero-header" style="display:none !important"')
                 .replace('id="mobile-paste-sample-row"', 'id="mobile-paste-sample-row" style="display:none !important"')
                 .replace(/<!-- HOME_PLATFORM_GRID -->/g, '') // Hide Why Choose etc.
                 .replace('<!-- TOOL_STEPS -->', '')
