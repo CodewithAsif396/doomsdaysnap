@@ -12,6 +12,15 @@
     <meta name="author" content="Doomsdaysnap">
     <link rel="canonical" href="https://doomsdaysnap.online/">
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z5XE5YM46M"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-Z5XE5YM46M');
+    </script>
 
     <!-- ── JSON-LD Structured Data ──────────────────────────────────────── -->
     <script type="application/ld+json">
@@ -48,17 +57,21 @@
     <meta property="og:description" content="Download HD & 4K videos from YouTube, TikTok, Instagram, Twitter/X, Facebook and Snapchat. No watermark, no sign-up.">
     <meta property="og:url"         content="https://doomsdaysnap.online/">
     <meta property="og:type"        content="website">
-    <meta property="og:image"       content="https://doomsdaysnap.online/og-image.jpg">
+    <meta property="og:image"       content="https://doomsdaysnap.online/og-image.png">
     <meta name="twitter:card"        content="summary_large_image">
     <meta name="twitter:title"       content="Doomsdaysnap — Ultimate Free Video Downloader">
     <meta name="twitter:description" content="Download from YouTube, TikTok, Instagram, Facebook and Snapchat. Free, HD, no watermark.">
-    <meta name="twitter:image"       content="https://doomsdaysnap.online/og-image.jpg">
+    <meta name="twitter:image"       content="https://doomsdaysnap.online/og-image.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- AdPanel integration -->
     <script src="/site-config.js"></script>
+    <link rel="stylesheet" href="/index.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -1285,16 +1298,27 @@
             });
         });
 
-        // ── Analytics Tracking ───────────────────────────────────────────────
+        // ── Analytics Tracking (Local API + GA4) ─────────────────────────────
         async function trackEvent(type, platform = '') {
+            const currentPlatform = platform || (window.location.pathname.replace(/^\//, '') || 'Home');
+            
+            // 1. Send to Local Dashboard
             try {
-                const currentPlatform = platform || (window.location.pathname.replace(/^\//, '') || 'Home');
                 await fetch('/api/ads/track', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ type, platform: currentPlatform })
                 });
-            } catch (e) { console.warn('Tracking failed:', e); }
+            } catch (e) { console.warn('Local tracking failed:', e); }
+
+            // 2. Send to Google Analytics (GA4)
+            if (typeof gtag === 'function') {
+                gtag('event', type, {
+                    'platform': currentPlatform,
+                    'event_category': 'Engagement',
+                    'event_label': type === 'download' ? 'Video Download' : 'Page Visit'
+                });
+            }
         }
 
         // Track Impression on Load
@@ -1309,6 +1333,42 @@
 
     }); // end DOMContentLoaded
     </script>
+    <!-- ── Internal Contextual Links for SEO ────────────────────── -->
+    <footer class="mt-20 py-12 border-t border-white/10 bg-black/20 backdrop-blur-md relative z-10">
+        <div class="max-w-6xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12 text-left">
+            <div>
+                <h3 class="text-xl font-bold mb-6 gradient-text">Doomsdaysnap</h3>
+                <p class="text-white/60 text-sm leading-relaxed">
+                    The world's most advanced multi-platform video downloader. 
+                    Download high-quality videos from 7+ platforms without limits.
+                </p>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-6 text-sm uppercase tracking-wider opacity-90">Supported Platforms</h4>
+                <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm text-white/50">
+                    <a href="/youtube-downloader" class="hover:text-purple-400 transition-colors">YouTube Video</a>
+                    <a href="/tiktok-downloader" class="hover:text-purple-400 transition-colors">TikTok Video</a>
+                    <a href="/instagram-downloader" class="hover:text-purple-400 transition-colors">Instagram Reels</a>
+                    <a href="/facebook-downloader" class="hover:text-purple-400 transition-colors">Facebook Video</a>
+                    <a href="/snapchat-downloader" class="hover:text-purple-400 transition-colors">Snapchat Spotlight</a>
+                    <a href="/twitter-downloader" class="hover:text-purple-400 transition-colors">Twitter (X) Video</a>
+                    <a href="/pinterest-downloader" class="hover:text-purple-400 transition-colors">Pinterest Video</a>
+                </div>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-6 text-sm uppercase tracking-wider opacity-90">Support & Privacy</h4>
+                <div class="flex flex-col gap-3 text-sm text-white/50">
+                    <a href="/tos" class="hover:text-purple-400 transition-colors">Terms of Service</a>
+                    <a href="/privacy" class="hover:text-purple-400 transition-colors">Privacy Policy</a>
+                    <a href="mailto:support@doomsdaysnap.online" class="hover:text-purple-400 transition-colors text-purple-300">Contact Support</a>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-6xl mx-auto px-4 mt-12 pt-8 border-t border-white/5 text-center text-white/30 text-[10px]">
+            &copy; 2026 Doomsdaysnap. All rights reserved. Not affiliated with any social media platforms.
+        </div>
+    </footer>
+
     <script src="/site-init.js" defer></script>
 </body>
 </html>

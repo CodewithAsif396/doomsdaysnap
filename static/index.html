@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YS PRO 2026 | Ghost Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Lexend:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050505;
+            --accent: #00f2ff;
+            --accent-glow: rgba(0, 242, 255, 0.3);
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
+            --text-dim: #a0a0a0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            background: radial-gradient(circle at top right, #001a1a 0%, #050505 50%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .logo {
+            font-family: 'Lexend', sans-serif;
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -2px;
+            background: linear-gradient(to bottom, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .engine-tag {
+            display: inline-block;
+            padding: 5px 15px;
+            background: var(--accent-glow);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        /* Search Box */
+        .search-container {
+            position: relative;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 10px;
+            backdrop-filter: blur(20px);
+            margin-bottom: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-container:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        #urlInput {
+            width: 100%;
+            background: transparent;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1.1rem;
+            color: #fff;
+            outline: none;
+        }
+
+        #fetchBtn {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            background: var(--text);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+        }
+
+        #fetchBtn:hover {
+            transform: scale(1.05);
+            background: var(--accent);
+        }
+
+        /* Status Monitor */
+        .monitor {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 40px;
+            display: none;
+        }
+
+        .monitor-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+            opacity: 0.3;
+            transition: all 0.5s;
+        }
+
+        .monitor-step.active { opacity: 1; color: var(--accent); }
+        .monitor-step.done { opacity: 0.6; color: #4ade80; }
+
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+        /* Results Area */
+        #results {
+            display: none;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .video-card {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 30px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 25px;
+            margin-bottom: 40px;
+        }
+
+        .thumbnail-container {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .thumbnail-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .duration {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .info h2 { font-size: 1.5rem; margin-bottom: 10px; line-height: 1.3; }
+        .uploader { color: var(--text-dim); font-size: 0.9rem; margin-bottom: 20px; }
+
+        /* Formats Table */
+        .formats-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .formats-table th {
+            text-align: left;
+            padding: 15px;
+            color: var(--text-dim);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .formats-table td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .res-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .tag-4k { background: gold; color: #000; box-shadow: 0 0 15px rgba(255,215,0,0.4); }
+        .tag-hd { background: #3b82f6; color: #fff; }
+        .tag-sd { background: #666; color: #fff; }
+
+        .dl-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .dl-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-glow);
+        }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        @media (max-width: 768px) {
+            .video-card { grid-template-columns: 1fr; }
+            .thumbnail-container { height: 200px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <div class="engine-tag">Professional Ghost Engine 2026</div>
+            <h1 class="logo">YS PRO</h1>
+            <p style="color: var(--text-dim)">Zero Cookies. Zero Tokens. Direct UHD Extraction.</p>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="urlInput" placeholder="Paste YouTube link here..." autocomplete="off">
+            <button id="fetchBtn">EXTRACT</button>
+        </div>
+
+        <div id="monitor" class="monitor">
+            <div class="monitor-step" id="step1"><div class="dot"></div> Initializing Ghost Browser Instance...</div>
+            <div class="monitor-step" id="step2"><div class="dot"></div> Stealth Masking & UA Spoofing...</div>
+            <div class="monitor-step" id="step3"><div class="dot"></div> Extracting Player Handshake (UHD)...</div>
+            <div class="monitor-step" id="step4"><div class="dot"></div> Verifying Stream Signatures...</div>
+        </div>
+
+        <div id="results">
+            <div class="video-card">
+                <div class="thumbnail-container">
+                    <img id="vThumb" src="" alt="">
+                    <span class="duration" id="vDuration">0:00</span>
+                </div>
+                <div class="info">
+                    <h2 id="vTitle">Video Title</h2>
+                    <div class="uploader" id="vMeta">Channel • Views</div>
+                    
+                    <table class="formats-table">
+                        <thead>
+                            <tr>
+                                <th>Resolution</th>
+                                <th>Format</th>
+                                <th>Size</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="formatRows"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fetchBtn = document.getElementById('fetchBtn');
+        const urlInput = document.getElementById('urlInput');
+        const monitor = document.getElementById('monitor');
+        const results = document.getElementById('results');
+
+        function updateStep(stepId, status) {
+            const el = document.getElementById('step' + stepId);
+            el.className = 'monitor-step ' + status;
+        }
+
+        async function extract() {
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            // Reset UI
+            results.style.display = 'none';
+            monitor.style.display = 'block';
+            ['1','2','3','4'].forEach(s => updateStep(s, ''));
+            
+            try {
+                // UI Animation Flow
+                setTimeout(() => updateStep('1', 'active'), 0);
+                setTimeout(() => updateStep('1', 'done'), 1000);
+                setTimeout(() => updateStep('2', 'active'), 1000);
+                setTimeout(() => updateStep('2', 'done'), 2000);
+                setTimeout(() => updateStep('3', 'active'), 2000);
+
+                const resp = await fetch(`/info?url=${encodeURIComponent(url)}`);
+                const data = await resp.json();
+
+                if (resp.status !== 200) {
+                    alert(data.detail);
+                    monitor.style.display = 'none';
+                    return;
+                }
+
+                updateStep('3', 'done');
+                updateStep('4', 'active');
+                setTimeout(() => updateStep('4', 'done'), 500);
+
+                // Show Results
+                displayResults(data, url);
+                
+            } catch (err) {
+                alert("Ghost Engine Error: Service Unreachable");
+                monitor.style.display = 'none';
+            }
+        }
+
+        function displayResults(data, originalUrl) {
+            document.getElementById('vTitle').innerText = data.title;
+            document.getElementById('vThumb').src = data.thumbnail;
+            document.getElementById('vDuration').innerText = formatTime(data.duration);
+            
+            const views = data.view_count ? `${data.view_count.toLocaleString()} views` : "Premium Extraction";
+            document.getElementById('vMeta').innerText = `${data.uploader} • ${views}`;
+
+            const rows = document.getElementById('formatRows');
+            rows.innerHTML = '';
+
+            const streams = data.video_streams || [];
+            streams.forEach(stream => {
+                const resNum = parseInt(stream.resolution) || 0;
+                let tagClass = 'tag-sd';
+                if (resNum >= 2160) tagClass = 'tag-4k';
+                else if (resNum >= 720) tagClass = 'tag-hd';
+
+                const sizeRaw = stream.filesize ? (stream.filesize / 1024 / 1024).toFixed(1) + " MB" : "HQ Stream";
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="res-tag ${tagClass}">${stream.resolution}</span></td>
+                    <td>${stream.ext.toUpperCase()} ${stream.is_dash ? '(UHD)' : '(Pro)'}</td>
+                    <td>${sizeRaw}</td>
+                    <td><button class="dl-btn" onclick="downloadVideo('${originalUrl}', '${stream.itag}')">Download</button></td>
+                `;
+                rows.appendChild(tr);
+            });
+
+            // Add Audio Row
+            const audio = data.audio_streams || [];
+            if (audio.length > 0) {
+                const bestAudio = audio[0]; // Usually first is best quality
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="res-tag tag-sd">MP3</span></td>
+                    <td>Audio (High Quality)</td>
+                    <td>~${(bestAudio.filesize / 1024 / 1024).toFixed(1)} MB</td>
+                    <td><button class="dl-btn" onclick="downloadAudio('${originalUrl}', '${bestAudio.itag}')">Download MP3</button></td>
+                `;
+                rows.appendChild(tr);
+            }
+
+            setTimeout(() => {
+                monitor.style.display = 'none';
+                results.style.display = 'block';
+            }, 800);
+        }
+
+        function downloadVideo(url, itag) {
+            window.location.href = `/download/video?url=${encodeURIComponent(url)}&itag=${itag}`;
+        }
+
+        function downloadAudio(url, itag) {
+            window.location.href = `/download/audio?url=${encodeURIComponent(url)}&itag=${itag}`;
+        }
+
+        function formatTime(s) {
+            const mins = Math.floor(s / 60);
+            const secs = s % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        fetchBtn.onclick = extract;
+        urlInput.onkeypress = (e) => { if(e.key === 'Enter') extract(); };
+    </script>
+</body>
+</html>

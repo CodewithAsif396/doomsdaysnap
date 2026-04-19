@@ -699,19 +699,40 @@ PLATFORM_ROUTES.forEach(route => {
                 .replace(/<meta name="twitter:description" content=".*?">/, `<meta name="twitter:description" content="${seo.desc}">`)
                 .replace(/<link rel="canonical" href=".*?">/, `<link rel="canonical" href="https://doomsdaysnap.online${route}">`);
 
-            // Inject Page-Specific Schema
-            const schemaHtml = `
-            <script type="application/ld+json">
-            {
+            // Inject Page-Specific Schema (SoftwareApplication + BreadcrumbList)
+            const breadcrumbSchema = {
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              "itemListElement": [
+                {
+                  "@type": "ListItem",
+                  "position": 1,
+                  "name": "Home",
+                  "item": "https://doomsdaysnap.online/"
+                },
+                {
+                  "@type": "ListItem",
+                  "position": 2,
+                  "name": seo.h1,
+                  "item": `https://doomsdaysnap.online${route}`
+                }
+              ]
+            };
+
+            const softwareSchema = {
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
-              "name": "${seo.h1}",
+              "name": seo.h1,
               "operatingSystem": "All",
               "applicationCategory": "MultimediaApplication",
               "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
               "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "1280" }
-            }
-            </script>`;
+            };
+
+            const schemaHtml = `
+            <script type="application/ld+json">${JSON.stringify(breadcrumbSchema)}</script>
+            <script type="application/ld+json">${JSON.stringify(softwareSchema)}</script>`;
+            
             modifiedContent = modifiedContent.replace('</head>', `${schemaHtml}\n</head>`);
 
             // Update H1 and Platform Title
@@ -1482,6 +1503,34 @@ app.get('/social/proxy', (req, res) => {
     );
     proxy.on('error', () => res.status(503).send('Social downloader unavailable'));
     proxy.end();
+});
+
+// ─── Sitemap & SEO Infrastructure ──────────────────────────────────────────────
+app.get('/sitemap.xml', (req, res) => {
+    const baseUrl = 'https://doomsdaysnap.online';
+    const platforms = Object.keys(PLATFORM_SEO_DATA);
+    
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>${baseUrl}/</loc>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>`;
+
+    platforms.forEach(p => {
+        xml += `
+    <url>
+        <loc>${baseUrl}/${p}</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>`;
+    });
+
+    xml += `\n</urlset>`;
+    
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
 });
 
 app.listen(PORT, () => {
