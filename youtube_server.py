@@ -141,63 +141,6 @@ class ExplodeEngine:
         }
 
 
-async def stream_simple(url: str):
-    async with httpx.AsyncClient(timeout=TIMEOUT, follow_redirects=True) as client:
-        try:
-            async with client.stream("GET", url, headers=STREAM_HEADERS) as r:
-                if r.status_code != 200:
-                    print(f"[DOWNLOAD ERROR] Status {r.status_code} for single stream")
-                async for chunk in r.aiter_bytes(65536):
-                    yield chunk
-        except Exception as e:
-            print(f"[STREAM ERROR] {str(e)}")
-
-
-async def stream_with_ffmpeg_merge(video_url: str, audio_url: str, title: str = "video"):
-    # Exclude Cookie — pre-signed URLs don't need it, and long cookies break FFmpeg header limit
-    ffmpeg_headers = {k: v for k, v in STREAM_HEADERS.items() if k != "Cookie"}
-    hdrs_str = "".join(f"{k}: {v}\r\n" for k, v in ffmpeg_headers.items())
-
-    cmd = [
-        FFMPEG_PATH, '-hide_banner', '-loglevel', 'error',
-        '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
-        '-headers', hdrs_str, '-i', video_url,
-        '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
-        '-headers', hdrs_str, '-i', audio_url,
-        '-c:v', 'copy', '-c:a', 'aac', '-strict', 'experimental',
-        '-map', '0:v:0', '-map', '1:a:0',
-        '-f', 'mp4', '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
-        'pipe:1'
-    ]
-
-    print(f"[DEBUG] Starting ffmpeg merge for: {title}")
-    
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
-
-    try:
-        # Read stdout in chunks and yield to response
-        while True:
-            chunk = await proc.stdout.read(1024 * 1024)
-            if not chunk:
-                # Check for errors if stdout is empty immediately
-                stderr_data = await proc.stderr.read()
-                if stderr_data:
-                    print(f"[FFMPEG ERROR] {stderr_data.decode().strip()}")
-                break
-            yield chunk
-    except Exception as e:
-        print(f"[STREAM ERROR] {str(e)}")
-    finally:
-        try:
-            if proc.returncode is None:
-                proc.terminate()
-                await proc.wait()
-        except Exception:
-            pass
 
 
 @app.get("/health")
@@ -214,60 +157,76 @@ async def get_info(url: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def stream_via_ytdlp(url: str, fmt: str, title: str):
+    """Let yt-dlp + ffmpeg handle everything internally, pipe stdout to browser."""
+    cookie_args = ['--cookies', COOKIES_FILE] if COOKIES_FILE else []
+    cmd = [
+        'yt-dlp',
+        '--format', fmt,
+        '--merge-output-format', 'mp4',
+        '--no-playlist',
+        '--quiet',
+        *cookie_args,
+        '--add-header', 'Referer:https://www.youtube.com/',
+        '--add-header', f'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        '-o', '-',
+        url
+    ]
+
+    print(f"[YT-DLP PIPE] {title} | fmt={fmt}")
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE
+    )
+
+    try:
+        while True:
+            chunk = await proc.stdout.read(1024 * 512)
+            if not chunk:
+                stderr_data = await proc.stderr.read()
+                if stderr_data:
+                    print(f"[YT-DLP ERROR] {stderr_data.decode(errors='replace').strip()}")
+                break
+            yield chunk
+    except Exception as e:
+        print(f"[PIPE ERROR] {e}")
+    finally:
+        try:
+            if proc.returncode is None:
+                proc.terminate()
+                await proc.wait()
+        except Exception:
+            pass
+
+
 @app.get("/download")
 async def download(url: str, height: Optional[str] = None):
     try:
         h = int(height) if height else None
-        # Exclude HLS (m3u8) protocols — they return manifest URLs that break direct streaming
-        # [protocol^=http] ensures we only get standard http/https streams
-        proto = '[protocol^=http]'
+
         if h:
-            fmt = (f'bestvideo[height<={h}][ext=mp4]{proto}+bestaudio[ext=m4a]{proto}'
-                   f'/bestvideo[height<={h}]{proto}+bestaudio{proto}'
-                   f'/best[height<={h}]{proto}')
+            fmt = f'bestvideo[height<={h}]+bestaudio/best[height<={h}]'
         else:
-            fmt = (f'bestvideo[ext=mp4]{proto}+bestaudio[ext=m4a]{proto}'
-                   f'/bestvideo{proto}+bestaudio{proto}/best{proto}')
+            fmt = 'bestvideo+bestaudio/best'
 
-        opts = {**YDL_BASE_OPTS, 'format': fmt}
-
-        def get_urls():
+        # Get title for filename
+        def get_title():
+            opts = {**YDL_BASE_OPTS, 'format': fmt}
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 if not info:
-                    raise Exception("No info returned")
-                if 'entries' in info:
-                    info = info['entries'][0]
-                title = info.get('title', 'video')
-                if info.get('requested_formats'):
-                    urls = [f['url'] for f in info['requested_formats']]
-                    return urls, title
-                return [info['url']], title
+                    return "video"
+                return info.get('title', 'video')
 
-        urls, title = await asyncio.to_thread(get_urls)
-
-        if not urls:
-            raise HTTPException(status_code=404, detail="No streams found")
-
+        title = await asyncio.to_thread(get_title)
         safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip() or "doomsdaysnap"
 
-        # Two streams = separate video + audio → merge with ffmpeg
-        if len(urls) >= 2:
-            return StreamingResponse(
-                stream_with_ffmpeg_merge(urls[0], urls[1], title),
-                media_type="video/mp4",
-                headers={
-                    "Content-Disposition": f'attachment; filename="{safe_title}.mp4"',
-                }
-            )
-
-        # Single stream
         return StreamingResponse(
-            stream_simple(urls[0]),
+            stream_via_ytdlp(url, fmt, title),
             media_type="video/mp4",
             headers={
                 "Content-Disposition": f'attachment; filename="{safe_title}.mp4"',
-                "Accept-Ranges": "bytes"
             }
         )
     except HTTPException:
