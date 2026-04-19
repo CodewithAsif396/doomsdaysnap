@@ -157,77 +157,65 @@ async def get_info(url: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def stream_via_ytdlp(url: str, fmt: str, title: str):
-    """Let yt-dlp + ffmpeg handle everything internally, pipe stdout to browser."""
-    cookie_args = ['--cookies', COOKIES_FILE] if COOKIES_FILE else []
-    cmd = [
-        'yt-dlp',
-        '--format', fmt,
-        '--merge-output-format', 'mp4',
-        '--no-playlist',
-        '--quiet',
-        *cookie_args,
-        '--add-header', 'Referer:https://www.youtube.com/',
-        '--add-header', f'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        '-o', '-',
-        url
-    ]
+import tempfile
+import glob as glob_mod
 
-    print(f"[YT-DLP PIPE] {title} | fmt={fmt}")
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
+async def download_and_stream(url: str, fmt: str, safe_title: str):
+    """Download to temp file via yt-dlp, then stream to browser, then delete."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out_tmpl = os.path.join(tmpdir, 'video.%(ext)s')
 
-    try:
-        while True:
-            chunk = await proc.stdout.read(1024 * 512)
-            if not chunk:
-                stderr_data = await proc.stderr.read()
-                if stderr_data:
-                    print(f"[YT-DLP ERROR] {stderr_data.decode(errors='replace').strip()}")
-                break
-            yield chunk
-    except Exception as e:
-        print(f"[PIPE ERROR] {e}")
-    finally:
-        try:
-            if proc.returncode is None:
-                proc.terminate()
-                await proc.wait()
-        except Exception:
-            pass
+        opts = {
+            **YDL_BASE_OPTS,
+            'format': fmt,
+            'outtmpl': out_tmpl,
+            'merge_output_format': 'mp4',
+            'postprocessors': [],
+        }
+
+        def do_download():
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.download([url])
+
+        print(f"[DOWNLOAD] Starting: {safe_title} | fmt={fmt}")
+        await asyncio.to_thread(do_download)
+
+        # Find the output file
+        files = glob_mod.glob(os.path.join(tmpdir, '*'))
+        if not files:
+            raise Exception("Download produced no output file")
+
+        out_file = files[0]
+        file_size = os.path.getsize(out_file)
+        print(f"[DOWNLOAD] Done: {file_size // 1024 // 1024} MB → streaming")
+
+        # Stream file to browser in chunks
+        with open(out_file, 'rb') as f:
+            while True:
+                chunk = f.read(1024 * 1024)
+                if not chunk:
+                    break
+                yield chunk
 
 
 @app.get("/download")
 async def download(url: str, height: Optional[str] = None):
     try:
         h = int(height) if height else None
+        fmt = f'bestvideo[height<={h}]+bestaudio/best[height<={h}]' if h else 'bestvideo+bestaudio/best'
 
-        if h:
-            fmt = f'bestvideo[height<={h}]+bestaudio/best[height<={h}]'
-        else:
-            fmt = 'bestvideo+bestaudio/best'
-
-        # Get title for filename
         def get_title():
-            opts = {**YDL_BASE_OPTS, 'format': fmt}
-            with yt_dlp.YoutubeDL(opts) as ydl:
+            with yt_dlp.YoutubeDL({**YDL_BASE_OPTS, 'format': fmt}) as ydl:
                 info = ydl.extract_info(url, download=False)
-                if not info:
-                    return "video"
-                return info.get('title', 'video')
+                return (info or {}).get('title', 'video')
 
         title = await asyncio.to_thread(get_title)
         safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip() or "doomsdaysnap"
 
         return StreamingResponse(
-            stream_via_ytdlp(url, fmt, title),
+            download_and_stream(url, fmt, safe_title),
             media_type="video/mp4",
-            headers={
-                "Content-Disposition": f'attachment; filename="{safe_title}.mp4"',
-            }
+            headers={"Content-Disposition": f'attachment; filename="{safe_title}.mp4"'}
         )
     except HTTPException:
         raise
