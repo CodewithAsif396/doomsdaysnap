@@ -144,13 +144,27 @@ async def download_and_stream(url: str, fmt: str, safe_title: str):
             print(f"[DOWNLOAD ERROR] {e}")
             raise
 
-        files = glob_mod.glob(os.path.join(tmpdir, '*'))
-        if not files:
-            raise Exception("yt-dlp produced no output file")
+        # Find the output file
+        # yt-dlp with outtmpl 'video.%(ext)s' and merge_output_format 'mp4' will produce 'video.mp4'
+        # unless it is a pure audio stream, then it might be 'video.mp3' or 'video.m4a'
+        out_file = None
+        for ext in ['mp4', 'mp3', 'm4a', 'webm', 'mkv']:
+            p = os.path.join(tmpdir, f'video.{ext}')
+            if os.path.exists(p):
+                out_file = p
+                break
+        
+        if not out_file:
+            # Fallback: pick the largest file that isn't a partial/temp file
+            all_files = [f for f in glob_mod.glob(os.path.join(tmpdir, '*')) if not f.endswith('.part')]
+            if all_files:
+                out_file = sorted(all_files, key=os.path.getsize, reverse=True)[0]
 
-        out_file = files[0]
+        if not out_file:
+            raise Exception("yt-dlp produced no usable output file")
+
         file_size = os.path.getsize(out_file)
-        print(f"[DOWNLOAD] Done: {file_size // 1024 // 1024} MB, streaming...")
+        print(f"[DOWNLOAD] Final File: {os.path.basename(out_file)} | Size: {file_size // 1024 // 1024} MB")
 
         with open(out_file, 'rb') as f:
             while True:
