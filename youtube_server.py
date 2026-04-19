@@ -11,26 +11,31 @@ app = FastAPI(title="YouTube Engine V7")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Auto-detect cookies file
-COOKIES_FILE = None
-for name in ["cookies (1).txt", "cookies.txt"]:
-    path = os.path.join(BASE_DIR, name)
-    if os.path.exists(path) and os.path.getsize(path) > 1000:
-        COOKIES_FILE = path
-        break
+def get_cookies_file():
+    """Dynamically look for the best cookies file available."""
+    for name in ["cookies (1).txt", "cookies.txt"]:
+        path = os.path.join(BASE_DIR, name)
+        if os.path.exists(path) and os.path.getsize(path) > 100:
+            return path
+    return None
 
-YDL_BASE_OPTS = {
-    'quiet': False,
-    'no_warnings': False,
-    'ignoreerrors': False,
-    'no_playlist': True,
-    'cookiefile': COOKIES_FILE,
-    'http_headers': {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.youtube.com/',
+def get_ydl_opts(extra=None):
+    """Generate yt-dlp options with the latest cookie path."""
+    opts = {
+        'quiet': False,
+        'no_warnings': False,
+        'ignoreerrors': False,
+        'no_playlist': True,
+        'cookiefile': get_cookies_file(),
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.youtube.com/',
+        }
     }
-}
+    if extra:
+        opts.update(extra)
+    return opts
 
 FFMPEG_LOCATION = os.environ.get("FFMPEG_PATH", None)
 
@@ -44,7 +49,7 @@ async def health():
 async def get_info(url: str):
     def extract():
         # No format filter — get ALL formats for listing
-        opts = {**YDL_BASE_OPTS}
+        opts = get_ydl_opts()
         with yt_dlp.YoutubeDL(opts) as ydl:
             return ydl.extract_info(url, download=False)
 
@@ -124,12 +129,11 @@ async def download_and_stream(url: str, fmt: str, safe_title: str):
     with tempfile.TemporaryDirectory() as tmpdir:
         out_tmpl = os.path.join(tmpdir, 'video.%(ext)s')
 
-        opts = {
-            **YDL_BASE_OPTS,
+        opts = get_ydl_opts({
             'format': fmt,
             'outtmpl': out_tmpl,
             'merge_output_format': 'mp4',
-        }
+        })
         if FFMPEG_LOCATION:
             opts['ffmpeg_location'] = FFMPEG_LOCATION
 
@@ -190,7 +194,7 @@ async def download(url: str, height: Optional[str] = None, type: Optional[str] =
 
         # Extract title without a format filter (fast)
         def get_title():
-            opts = {**YDL_BASE_OPTS, 'skip_download': True}
+            opts = get_ydl_opts({'skip_download': True, 'format': fmt})
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 return (info or {}).get('title', 'video')
@@ -218,5 +222,5 @@ async def download(url: str, height: Optional[str] = None, type: Optional[str] =
 
 if __name__ == "__main__":
     import uvicorn
-    print(f"[YouTube Engine V7] Cookies: {COOKIES_FILE or 'None'}")
+    print(f"[YouTube Engine V7] Dynamic Cookie Detection Active.")
     uvicorn.run(app, host="0.0.0.0", port=5002)
