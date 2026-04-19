@@ -389,7 +389,7 @@ const LEGAL_DATA = {
         desc: 'Learn about how Doomsdaysnap handles privacy and data protection.',
         h1: 'Privacy Policy',
         content: `
-            <div class="prose prose-invert max-w-none space-y-6">
+            <div class="prose prose-invert max-w-none space-y-4">
                 <section>
                     <h2 class="text-2xl font-bold text-white mb-4">1. Data Collection</h2>
                     <p class="text-gray-400 leading-relaxed">Doomsdaysnap is a privacy-first platform. We do NOT store personal data, IP addresses, or video download history on our servers. All video processing is performed in temporary memory and never persisted.</p>
@@ -410,7 +410,7 @@ const LEGAL_DATA = {
         desc: 'Read the terms and conditions for using Doomsdaysnap services.',
         h1: 'Terms of Service',
         content: `
-            <div class="prose prose-invert max-w-none space-y-6">
+            <div class="prose prose-invert max-w-none space-y-4">
                 <section>
                     <h2 class="text-2xl font-bold text-white mb-4">1. Service Usage</h2>
                     <p class="text-gray-400 leading-relaxed">Doomsdaysnap provides a tool to download publicly available media. By using this service, you agree to comply with all applicable copyright laws and regulations.</p>
@@ -447,8 +447,8 @@ const LEGAL_DATA = {
                 .replace('<!-- TOOL_FAQ -->', '')
                 .replace('<!-- TOOL_GRID_ITEMS -->', '')
                 .replace('<!-- TOOL_RICH_CONTENT -->', `
-                    <div class="max-w-4xl mx-auto py-12 px-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl">
-                        <h1 class="text-4xl sm:text-6xl font-black text-white mb-8 gradient-text text-center">${legal.h1}</h1>
+                    <div class="max-w-4xl mx-auto py-6 px-6 bg-white/5 rounded-[2rem] border border-white/10 backdrop-blur-xl">
+                        <h1 class="text-3xl sm:text-4xl font-black text-white mb-4 gradient-text text-center">${legal.h1}</h1>
                         ${legal.content}
                     </div>
                 `);

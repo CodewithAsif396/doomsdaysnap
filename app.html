@@ -237,6 +237,54 @@
             border-bottom: 0px;
         }
 
+        /* Share Bar: Vertical Center Left Peek-a-boo */
+        .share-bar {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%) translateX(-65%); /* Hide 65% of the bar */
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 15px 12px 15px 8px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: none;
+            border-radius: 0 20px 20px 0;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 10px 0 30px rgba(0,0,0,0.4);
+        }
+
+        .share-bar:hover {
+            transform: translateY(-50%) translateX(0);
+            background: rgba(255, 255, 255, 0.08);
+            padding-left: 15px;
+        }
+
+        /* Mobile: Elegant Bottom Bar */
+        @media (max-width: 768px) {
+            .share-bar {
+                left: 50% !important;
+                bottom: 0 !important;
+                top: auto !important;
+                transform: translateX(-50%) translateY(0) !important;
+                flex-direction: row !important;
+                padding: 12px 24px !important;
+                border-radius: 20px 20px 0 0 !important;
+                border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                border-bottom: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                justify-content: center;
+                gap: 20px !important;
+                background: rgba(15, 15, 25, 0.95) !important;
+                box-shadow: 0 -10px 30px rgba(0,0,0,0.5) !important;
+            }
+            .share-bar:hover { padding-left: 24px !important; }
+        }
+
     </style>
 </head>
 <body class="antialiased relative min-h-screen flex flex-col font-sans">
@@ -1383,6 +1431,40 @@
         </div>
     </footer>
 
+    <!-- Premium Share Bar: Desktop (Peek-a-boo Left) | Mobile (Bottom Menu) -->
+    <div class="share-bar">
+        <a href="javascript:void(0)" onclick="sharePlatform('telegram')" class="w-10 h-10 rounded-full flex items-center justify-center bg-[#0088cc] text-white hover:scale-110 transition-transform shadow-lg" title="Share on Telegram">
+            <i class="fa-brands fa-telegram text-lg"></i>
+        </a>
+        <a href="javascript:void(0)" onclick="sharePlatform('whatsapp')" class="w-10 h-10 rounded-full flex items-center justify-center bg-[#25D366] text-white hover:scale-110 transition-transform shadow-lg" title="Share on WhatsApp">
+            <i class="fa-brands fa-whatsapp text-lg"></i>
+        </a>
+        <a href="javascript:void(0)" onclick="sharePlatform('x')" class="w-10 h-10 rounded-full flex items-center justify-center bg-black text-white hover:scale-110 transition-transform shadow-lg border border-white/10" title="Share on X (Twitter)">
+            <i class="fa-brands fa-x-twitter text-lg"></i>
+        </a>
+        <a href="javascript:void(0)" onclick="sharePlatform('facebook')" class="w-10 h-10 rounded-full flex items-center justify-center bg-[#1877F2] text-white hover:scale-110 transition-transform shadow-lg" title="Share on Facebook">
+            <i class="fa-brands fa-facebook-f text-lg"></i>
+        </a>
+    </div>
+
+    <script>
+        function sharePlatform(platform) {
+            const url = encodeURIComponent(window.location.origin);
+            const text = encodeURIComponent('Download high-quality videos from TikTok, Instagram, and more with Doomsdaysnap! 🔥');
+            let shareUrl = '';
+
+            switch(platform) {
+                case 'facebook': shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`; break;
+                case 'whatsapp': shareUrl = `https://api.whatsapp.com/send?text=${text}%20${url}`; break;
+                case 'x': shareUrl = `https://twitter.com/intent/tweet?url=${url}&text=${text}`; break;
+                case 'telegram': shareUrl = `https://t.me/share/url?url=${url}&text=${text}`; break;
+            }
+
+            if (shareUrl) {
+                window.open(shareUrl, '_blank', 'width=600,height=400');
+            }
+        }
+    </script>
     <script src="/site-init.js" defer></script>
 </body>
 </html>
