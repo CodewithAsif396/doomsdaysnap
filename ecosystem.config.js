@@ -2,8 +2,7 @@ module.exports = {
   apps: [
     {
       name: 'snap-main',
-      script: 'node',
-      args: 'server.js',
+      script: './server.js',
       cron_restart: '*/45 * * * *',
       max_memory_restart: '800M',
       env_production: {
