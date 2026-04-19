@@ -35,8 +35,7 @@ YDL_BASE_OPTS = {
     },
     'extractor_args': {
         'youtube': {
-            'player_client': ['android', 'ios', 'web', 'mweb', 'web_embedded'],
-            'po_token': ['web+PO_TOKEN', 'ios+PO_TOKEN'] # Placeholder for future PO Token integration
+            'player_client': ['android', 'ios', 'web'],
         }
     }
 }
