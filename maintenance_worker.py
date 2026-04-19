@@ -37,10 +37,9 @@ def run_repair():
 def check_health():
     try:
         resp = requests.get(ENGINE_URL, timeout=10)
-        data = resp.json()
-        if data.get("status") == "healthy":
+        if resp.status_code == 200:
             return True
-        log(f"Engine reported warning: {data.get('details')}")
+        log(f"Engine returned status {resp.status_code}")
         return False
     except Exception as e:
         log(f"Connection error to engine: {str(e)}")
