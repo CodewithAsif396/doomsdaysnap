@@ -155,7 +155,9 @@ async def stream_simple(url: str):
 
 
 async def stream_with_ffmpeg_merge(video_url: str, audio_url: str, title: str = "video"):
-    hdrs_str = "".join(f"{k}: {v}\r\n" for k, v in STREAM_HEADERS.items())
+    # Exclude Cookie — pre-signed URLs don't need it, and long cookies break FFmpeg header limit
+    ffmpeg_headers = {k: v for k, v in STREAM_HEADERS.items() if k != "Cookie"}
+    hdrs_str = "".join(f"{k}: {v}\r\n" for k, v in ffmpeg_headers.items())
 
     cmd = [
         FFMPEG_PATH, '-hide_banner', '-loglevel', 'error',
