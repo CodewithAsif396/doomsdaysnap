@@ -35,7 +35,7 @@ YDL_BASE_OPTS = {
     },
     'extractor_args': {
         'youtube': {
-            'player_client': ['android', 'ios', 'web'],
+            'player_client': ['web', 'tv_embedded'],
         }
     }
 }
