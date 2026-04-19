@@ -885,6 +885,28 @@ app.post('/api/info', rateLimit, async (req, res) => {
             return res.status(400).json({ error: 'Please provide a valid video URL.' });
         }
         const safeUrl  = sanitizeUrl(url);
+        
+        // ── YouTube Hybrid Pro Integration ──
+        if (safeUrl.includes('youtube.com') || safeUrl.includes('youtu.be')) {
+            console.log(`[INFO] YouTube Hybrid Pro → ${safeUrl}`);
+            try {
+                const response = await new Promise((resolve, reject) => {
+                    const pyReq = http.get(`http://127.0.0.1:5002/info?url=${encodeURIComponent(safeUrl)}`, (res) => {
+                        let data = '';
+                        res.on('data', chunk => data += chunk);
+                        res.on('end', () => resolve(JSON.parse(data)));
+                    });
+                    pyReq.on('error', reject);
+                    pyReq.setTimeout(30000, () => { pyReq.destroy(); reject(new Error('YouTube Engine Timeout')); });
+                });
+                return res.json({ ...response, originalUrl: url });
+            } catch (err) {
+                console.error('[YouTube Engine Error]:', err.message);
+                // Fallback to legacy if needed or just error
+                throw err;
+            }
+        }
+
         const isTikTok = safeUrl.includes('tiktok.com');
         const provider = getProvider(safeUrl);
         console.log(`[INFO] ${provider.constructor.name} → ${safeUrl}`);
@@ -986,6 +1008,31 @@ app.get('/api/download', rateLimit, async (req, res) => {
 
     const safeUrl     = sanitizeUrl(url);
     const isYouTube   = safeUrl.includes('youtube.com') || safeUrl.includes('youtu.be');
+    
+    // ── YouTube Hybrid Pro Download ──
+    if (isYouTube) {
+        console.log(`[DOWNLOAD] YouTube Hybrid Pro Pipe → ${safeUrl.slice(0, 60)}`);
+        const pyUrl = `http://127.0.0.1:5002/download?url=${encodeURIComponent(safeUrl)}${fid ? `&fid=${fid}` : ''}`;
+        
+        const pyReq = http.get(pyUrl, (pyRes) => {
+            if (pyRes.statusCode !== 200) {
+                console.error('[YouTube Engine] Download error:', pyRes.statusCode);
+                return res.status(500).send('YouTube download failed.');
+            }
+            if (pyRes.headers['content-length']) res.setHeader('Content-Length', pyRes.headers['content-length']);
+            if (pyRes.headers['content-type']) res.setHeader('Content-Type', pyRes.headers['content-type']);
+            pyRes.pipe(res);
+        });
+        
+        pyReq.on('error', (err) => {
+            console.error('[YouTube Proxy Error]:', err.message);
+            if (!res.headersSent) res.status(500).send('Connection to YouTube engine failed.');
+        });
+        
+        req.on('close', () => pyReq.destroy());
+        return;
+    }
+
     const isTikTok    = safeUrl.includes('tiktok.com');
     const isInstagram = safeUrl.includes('instagram.com');
     const isTwitter   = safeUrl.includes('x.com') || safeUrl.includes('twitter.com');
