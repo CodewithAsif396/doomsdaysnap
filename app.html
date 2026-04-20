@@ -304,74 +304,59 @@
 
     <!-- HD Download Modal -->
     <div id="hd-modal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300">
-        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" onclick="closeHDModal()"></div>
-        <div class="glass relative w-full max-w-lg rounded-3xl p-5 sm:p-8 shadow-2xl border border-white/10 transform scale-95 transition-all duration-300">
-            <button onclick="closeHDModal()" class="absolute top-3 right-3 sm:top-4 sm:right-4 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-all">
+        <div class="fixed inset-0 bg-black/70 backdrop-blur-sm" onclick="closeHDModal()"></div>
+        <div class="glass relative w-full max-w-[380px] rounded-2xl p-5 sm:p-6 shadow-2xl border border-white/10 transform scale-95 transition-all duration-300 max-h-[85vh] overflow-y-auto">
+            <button onclick="closeHDModal()" class="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition-all z-10">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
             
-            <div class="text-center mb-5 sm:mb-8">
-                <div class="w-12 h-12 sm:w-16 sm:h-16 bg-purple-500/20 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-purple-500/30">
-                    <i class="fa-solid fa-film text-2xl sm:text-3xl text-purple-400"></i>
+            <div class="text-center mb-4">
+                <div class="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center mx-auto mb-3 border border-purple-500/30">
+                    <i class="fa-solid fa-film text-xl text-purple-400"></i>
                 </div>
-                <h2 class="text-xl sm:text-2xl font-bold text-white mb-2">HD Download — Video + Audio</h2>
-                <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 sm:p-4 text-left mb-5">
-                    <p class="text-blue-300 text-xs sm:text-sm leading-relaxed">
-                        <i class="fa-solid fa-circle-info mr-2"></i>
+                <h2 class="text-lg sm:text-xl font-bold text-white mb-2">HD Download — Video + Audio</h2>
+                <div class="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-center mb-4">
+                    <p class="text-blue-300 text-[11px] sm:text-xs leading-tight">
                         YouTube provides HD videos as separate video and audio files. 
-                        Please download both files below, then merge them using any video merger tool.
+                        Please download both files below, then merge them.
                     </p>
                 </div>
 
-                <div class="mb-6">
-                    <p class="text-gray-400 text-[10px] sm:text-[11px] mb-2.5 uppercase tracking-wider font-bold text-center">Recommended Merger Apps — Choose Your Platform:</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <a href="https://play.google.com/store/apps/details?id=com.vidmerger.audiovideomerger" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 py-2 px-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-purple-500/30 transition-all text-[11px] sm:text-xs text-gray-300 group/link">
-                            <i class="fa-brands fa-android text-green-500 group-hover/link:scale-110 transition-transform"></i> Android
-                        </a>
-                        <a href="https://apps.apple.com/app/video-audio-merger/id1450704139" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 py-2 px-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-purple-500/30 transition-all text-[11px] sm:text-xs text-gray-300 group/link">
-                            <i class="fa-brands fa-apple text-white group-hover/link:scale-110 transition-transform"></i> iOS
-                        </a>
-                        <a href="https://clideo.com/merge-video-audio" target="_blank" rel="noopener noreferrer" class="flex items-center justify-center gap-2 py-2 px-2 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-purple-500/30 transition-all text-[11px] sm:text-xs text-gray-300 group/link">
-                            <i class="fa-solid fa-globe text-blue-400 group-hover/link:scale-110 transition-transform"></i> Web (PC)
-                        </a>
+                <div class="mb-5">
+                    <p class="text-gray-400 text-[10px] uppercase tracking-wider font-bold mb-3">Recommended Merger Apps:</p>
+                    <div class="flex items-center justify-center gap-4">
+                        <div class="flex flex-col items-center gap-1.5">
+                            <a href="https://play.google.com/store/apps/details?id=com.getit.video_audio_merger" target="_blank" rel="noopener noreferrer" class="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-green-500/30 transition-all group/link">
+                                <i class="fa-brands fa-android text-2xl text-green-500 group-hover/link:scale-110 transition-transform"></i>
+                            </a>
+                            <span class="text-[9px] text-gray-400 uppercase tracking-tighter">Android</span>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5">
+                            <a href="https://apps.apple.com/us/app/video-merge-easy-video-joiner/id1497420151" target="_blank" rel="noopener noreferrer" class="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-purple-500/30 transition-all group/link">
+                                <i class="fa-brands fa-apple text-2xl text-white group-hover/link:scale-110 transition-transform"></i>
+                            </a>
+                            <span class="text-[9px] text-gray-400 uppercase tracking-tighter">iOS</span>
+                        </div>
+                        <div class="flex flex-col items-center gap-1.5">
+                            <a href="https://clideo.com/merge-video-audio" target="_blank" rel="noopener noreferrer" class="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-blue-500/30 transition-all group/link">
+                                <i class="fa-solid fa-globe text-2xl text-blue-400 group-hover/link:scale-110 transition-transform"></i>
+                            </a>
+                            <span class="text-[9px] text-gray-400 uppercase tracking-tighter">Web (PC)</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="space-y-3 sm:space-y-4">
-                <div class="p-3 sm:p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between group hover:bg-white/10 transition-all">
-                    <div class="flex items-center gap-3 sm:gap-4">
-                        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                            <i class="fa-solid fa-video text-sm sm:text-base"></i>
-                        </div>
-                        <div>
-                            <p id="hd-video-label" class="text-white font-semibold text-xs sm:text-sm">Download Video</p>
-                            <p class="text-gray-500 text-[9px] sm:text-[10px] uppercase tracking-widest">Video Stream (No Audio)</p>
-                        </div>
-                    </div>
-                    <button id="hd-video-btn" data-url="" onclick="triggerDownload(this, this.dataset.url)" class="gradient-bg text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-lg hover:shadow-purple-500/20 active:scale-95 transition-all">
-                        <i class="fa-solid fa-arrow-down-long mr-1.5 sm:mr-2"></i> Get Video
-                    </button>
-                </div>
-
-                <div class="p-3 sm:p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between group hover:bg-white/10 transition-all">
-                    <div class="flex items-center gap-3 sm:gap-4">
-                        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400">
-                            <i class="fa-solid fa-music text-sm sm:text-base"></i>
-                        </div>
-                        <div>
-                            <p class="text-white font-semibold text-xs sm:text-sm">Download Audio</p>
-                            <p class="text-gray-500 text-[9px] sm:text-[10px] uppercase tracking-widest">High Quality M4A/MP3</p>
-                        </div>
-                    </div>
-                    <button id="hd-audio-btn" data-url="" onclick="triggerDownload(this, this.dataset.url)" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm transition-all">
-                        <i class="fa-solid fa-headphones mr-1.5 sm:mr-2"></i> Get Audio
-                    </button>
-                </div>
+            <div class="space-y-3">
+                <button id="hd-video-btn" data-url="" onclick="triggerDownload(this, this.dataset.url)" class="w-full gradient-bg text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-lg hover:shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrow-down-long"></i> ⬇ Download Video (1080p)
+                </button>
+                <button id="hd-audio-btn" data-url="" onclick="triggerDownload(this, this.dataset.url)" class="w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-music"></i> ⬇ Download Audio
+                </button>
             </div>
 
-            <p class="text-center text-gray-500 text-[9px] sm:text-[10px] mt-5 sm:mt-6 uppercase tracking-[0.2em]">Quality ensured by Doomsdaysnap</p>
+            <p class="text-center text-gray-500 text-[9px] mt-5 uppercase tracking-[0.2em]">Quality ensured by Doomsdaysnap</p>
         </div>
     </div>
 
