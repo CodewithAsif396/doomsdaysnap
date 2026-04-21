@@ -139,15 +139,24 @@ async def get_info(url: str):
     }
 
 
-async def download_and_stream(url: str, fmt: str, safe_title: str):
+async def download_and_stream(url: str, fmt: str, safe_title: str, is_audio: bool = False):
     with tempfile.TemporaryDirectory() as tmpdir:
         out_tmpl = os.path.join(tmpdir, 'video.%(ext)s')
 
         opts = get_ydl_opts({
             'format': fmt,
             'outtmpl': out_tmpl,
-            'merge_output_format': 'mp4',
         })
+        
+        if is_audio:
+            opts['postprocessors'] = [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }]
+        else:
+            opts['merge_output_format'] = 'mp4'
+
         if FFMPEG_LOCATION:
             opts['ffmpeg_location'] = FFMPEG_LOCATION
 
@@ -155,7 +164,7 @@ async def download_and_stream(url: str, fmt: str, safe_title: str):
             with yt_dlp.YoutubeDL(opts) as ydl:
                 ydl.download([url])
 
-        print(f"[DOWNLOAD] Start: {safe_title} | fmt={fmt}")
+        print(f"[DOWNLOAD] Start: {safe_title} | fmt={fmt} | audio={is_audio}")
         try:
             await asyncio.to_thread(do_download)
         except Exception as e:
@@ -163,17 +172,16 @@ async def download_and_stream(url: str, fmt: str, safe_title: str):
             raise
 
         # Find the output file
-        # yt-dlp with outtmpl 'video.%(ext)s' and merge_output_format 'mp4' will produce 'video.mp4'
-        # unless it is a pure audio stream, then it might be 'video.mp3' or 'video.m4a'
         out_file = None
-        for ext in ['mp4', 'mp3', 'm4a', 'webm', 'mkv']:
+        # Order matters: check mp3 first for audio
+        exts = ['mp3', 'mp4', 'm4a', 'webm', 'mkv'] if is_audio else ['mp4', 'mkv', 'webm', 'm4a', 'mp3']
+        for ext in exts:
             p = os.path.join(tmpdir, f'video.{ext}')
             if os.path.exists(p):
                 out_file = p
                 break
         
         if not out_file:
-            # Fallback: pick the largest file that isn't a partial/temp file
             all_files = [f for f in glob_mod.glob(os.path.join(tmpdir, '*')) if not f.endswith('.part')]
             if all_files:
                 out_file = sorted(all_files, key=os.path.getsize, reverse=True)[0]
@@ -211,7 +219,6 @@ async def download(url: str, height: Optional[str] = None, type: Optional[str] =
             opts = get_ydl_opts({'skip_download': True, 'format': fmt})
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                # If fmt resolved to a single stream, we can redirect
                 requested_formats = info.get('requested_formats')
                 if not requested_formats and info.get('url'):
                     return info
@@ -220,11 +227,15 @@ async def download(url: str, height: Optional[str] = None, type: Optional[str] =
                 return info
 
         try:
-            f_info = await asyncio.to_thread(get_format_info)
-            title = f_info.get('title') or "video"
-            direct_url = f_info.get('url')
+            # Skip redirect for audio if we want guaranteed mp3 conversion (native is often m4a)
+            if is_audio:
+                f_info = {"title": "audio"} # dummy for below
+                direct_url = None
+            else:
+                f_info = await asyncio.to_thread(get_format_info)
+                title = f_info.get('title') or "video"
+                direct_url = f_info.get('url')
             
-            # If it's a single direct URL, REDIRECT to save VPS resources
             if direct_url and "manifest" not in direct_url:
                 print(f"[DOWNLOAD] Redirecting to CDN: {title[:50]}...")
                 return RedirectResponse(url=direct_url)
@@ -238,7 +249,7 @@ async def download(url: str, height: Optional[str] = None, type: Optional[str] =
 
         print(f"[DOWNLOAD] Falling back to VPS stream for: {safe_title}")
         return StreamingResponse(
-            download_and_stream(url, fmt, safe_title),
+            download_and_stream(url, fmt, safe_title, is_audio=is_audio),
             media_type=media_type,
             headers={"Content-Disposition": f'attachment; filename="{safe_title}.{ext}"'}
         )
