@@ -1728,20 +1728,31 @@ async function loadCookieStatus() {
     let reminderHtml = '';
     
     platforms.forEach(p => {
-      const s = d[p];
+      const s = d[p] || { exists: false, valid: false, reason: 'No status' };
       const box = document.getElementById(`status-${p}`);
       if (box) {
-        const color = !s.exists ? 'var(--red)' : (!s.valid ? 'var(--yellow)' : 'var(--green)');
-        const icon = !s.exists ? 'fa-circle-xmark' : (!s.valid ? 'fa-triangle-exclamation' : 'fa-circle-check');
-        const label = !s.exists ? 'Missing' : (!s.valid ? 'Expired/Invalid' : 'Active');
+        let color = 'var(--green)';
+        let label = 'Active';
+        let icon = 'fa-circle-check';
+
+        if (!s.exists) {
+          color = 'var(--red)'; label = 'Missing'; icon = 'fa-circle-xmark';
+        } else if (!s.valid) {
+          color = 'var(--red)'; label = 'Expired/Invalid'; icon = 'fa-triangle-exclamation';
+        } else if (s.age_days > 12) {
+          color = 'var(--yellow)'; label = 'Expiring Soon'; icon = 'fa-clock';
+        }
         
         box.innerHTML = `
-          <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;gap:.75rem">
-            <i class="fas ${icon}" style="color:${color};font-size:1.1rem"></i>
-            <div style="flex:1">
-              <div style="font-size:.85rem;font-weight:600;color:${color}">${label}</div>
-              <div style="font-size:.7rem;color:var(--muted)">${s.age_days ? s.age_days + ' days old' : 'No file'} · ${s.reason || ''}</div>
+          <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:8px;border:1px solid var(--border);display:flex;flex-direction:column;gap:.4rem">
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <i class="fas ${icon}" style="color:${color};font-size:1.1rem"></i>
+              <div style="flex:1">
+                <div style="font-size:.85rem;font-weight:600;color:${color}">${label}</div>
+                <div style="font-size:.7rem;color:var(--muted)">${s.age_days ? s.age_days + ' days old' : 'No file'} · ${s.reason || ''}</div>
+              </div>
             </div>
+            ${s.debug_path ? `<div style="font-size:10px;color:rgba(255,255,255,0.05);word-break:break-all;border-top:1px solid rgba(255,255,255,0.02);padding-top:4px">Path: ${s.debug_path}</div>` : ''}
           </div>`;
       }
 
