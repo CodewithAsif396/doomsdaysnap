@@ -50,18 +50,22 @@ def get_cookie_path(platform):
 
 def cookie_age_days(platform) -> float:
     path = get_cookie_path(platform)
-    if not os.path.exists(path) or os.path.getsize(path) < 500:
+    if not os.path.exists(path):
         return 999.0
+    if os.path.getsize(path) < 100: # Smaller threshold
+        return 998.0
     return (time.time() - os.path.getmtime(path)) / 86400
 
 def validate_cookies(platform) -> tuple[bool, str]:
     path = get_cookie_path(platform)
-    if not os.path.exists(path) or os.path.getsize(path) < 500:
-        # Fallback to legacy cookies.txt for facebook if specific one missing
+    exists = os.path.exists(path) and os.path.getsize(path) > 100
+    
+    if not exists:
+        # Fallback to legacy cookies.txt for facebook ONLY if specifically missing
         if platform == "facebook" and os.path.exists(DEFAULT_COOKIE_FILE):
             path = DEFAULT_COOKIE_FILE
         else:
-            return False, f"Cookie file missing for {platform}"
+            return False, f"Missing: {os.path.basename(path)}"
 
     test_url = PLATFORMS.get(platform, {}).get("test_url", "https://www.google.com")
     

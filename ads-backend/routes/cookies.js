@@ -7,10 +7,10 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Ensure PROJECT_DIR points to the absolute project root (one level up from ads-backend)
-const PROJECT_DIR = path.resolve(process.cwd(), '..');
-// Fallback if process.cwd is not ads-backend
-const ABS_ROOT = fs.existsSync(path.join(PROJECT_DIR, 'server.js')) ? PROJECT_DIR : path.resolve(__dirname, '../..');
+// Always calculate root relative to this file's location
+// __dirname is root/ads-backend/routes
+const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
+const ABS_ROOT = PROJECT_ROOT;
 
 function getPythonCommand() {
     if (process.platform === 'win32') return 'python';
