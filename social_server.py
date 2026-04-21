@@ -27,121 +27,105 @@ def fix_url(u):
 # ─── FACEBOOK ────────────────────────────────────────────────────────────────
 
 def fetch_facebook(url):
-    clean = url.replace("m.facebook.com", "www.facebook.com")
+    """
+    Extract Facebook video using yt-dlp engine.
+    Supports multi-quality (HD/SD).
+    """
+    import subprocess
+    import json
+    import os
 
-    # ── Method 1: snapsave.app (most reliable for public FB videos) ──────────
     try:
-        r = requests.post(
-            "https://snapsave.app/action.php",
-            data={"url": url},
-            headers={
-                **BROWSER_HEADERS,
-                "Referer": "https://snapsave.app/",
-                "Origin": "https://snapsave.app",
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            timeout=20,
-            allow_redirects=True,
-        )
-        html = r.text
-        # snapsave returns links in <a href="..."> with HD/SD labels
-        links = re.findall(r'href="(https://[^"]+\.mp4[^"]*)"', html, re.IGNORECASE)
-        if not links:
-            links = re.findall(r'href="(https://[^"]+fbcdn[^"]*)"', html, re.IGNORECASE)
-        if links:
-            video_url = fix_url(links[0])
-            print("[Facebook] snapsave.app success")
-            return {"video_url": video_url, "title": "Facebook Video", "platform": "facebook"}
-    except Exception as e:
-        print(f"[Facebook] snapsave error: {e}")
-
-    # ── Method 2: fdownloader.net API ────────────────────────────────────────
-    try:
-        r = requests.post(
-            "https://fdownloader.net/api/ajaxSearch",
-            data={"q": url, "lang": "en", "v": "a2"},
-            headers={
-                **BROWSER_HEADERS,
-                "Referer": "https://fdownloader.net/",
-                "Origin": "https://fdownloader.net",
-                "Content-Type": "application/x-www-form-urlencoded",
-                "X-Requested-With": "XMLHttpRequest",
-            },
-            timeout=20,
-        )
-        data = r.json()
-        html_data = data.get("data", "")
-        links = re.findall(r'href="(https://[^"]+\.mp4[^"]*)"', html_data, re.IGNORECASE)
-        if not links:
-            links = re.findall(r'href="(https://[^"]+fbcdn[^"]*)"', html_data, re.IGNORECASE)
-        if links:
-            video_url = fix_url(links[0])
-            print("[Facebook] fdownloader.net success")
-            return {"video_url": video_url, "title": "Facebook Video", "platform": "facebook"}
-    except Exception as e:
-        print(f"[Facebook] fdownloader.net error: {e}")
-
-    # ── Method 3: Direct page scrape (many patterns) ─────────────────────────
-    try:
-        r = requests.get(clean, headers=BROWSER_HEADERS, timeout=20, allow_redirects=True)
-        html = r.text
-        patterns = [
-            r'"hd_src_no_ratelimit"\s*:\s*"([^"]+)"',
-            r'"hd_src"\s*:\s*"([^"]+)"',
-            r'"browser_native_hd_url"\s*:\s*"([^"]+)"',
-            r'"browser_native_sd_url"\s*:\s*"([^"]+)"',
-            r'"playable_url_quality_hd"\s*:\s*"([^"]+)"',
-            r'"playable_url"\s*:\s*"([^"]+)"',
-            r'"sd_src_no_ratelimit"\s*:\s*"([^"]+)"',
-            r'"sd_src"\s*:\s*"([^"]+)"',
+        # Base directory of the project
+        BASE = os.path.dirname(os.path.abspath(__file__))
+        
+        # Determine which cookie file to use
+        # Prefers cookies_facebook.txt (new system), fallbacks to cookies.txt (legacy)
+        cookie_file = os.path.join(BASE, 'cookies_facebook.txt')
+        if not os.path.exists(cookie_file):
+            cookie_file = os.path.join(BASE, 'cookies.txt')
+        
+        # Command to get metadata in JSON format
+        cmd = [
+            'python', '-m', 'yt_dlp',
+            '--dump-single-json',
+            '--no-playlist',
+            '--quiet',
+            '--no-warnings',
+            '--no-check-certificate',
+            url
         ]
-        for pat in patterns:
-            m = re.search(pat, html)
-            if m:
-                video_url = fix_url(m.group(1))
-                if ("fbcdn" in video_url or "fna.fbcdn" in video_url or ".mp4" in video_url) and len(video_url) > 30:
-                    print(f"[Facebook] page scrape success: {pat[:30]}")
-                    return {"video_url": video_url, "title": "Facebook Video", "platform": "facebook"}
-    except Exception as e:
-        print(f"[Facebook] page scrape error: {e}")
+        
+        if os.path.exists(cookie_file):
+            cmd.extend(['--cookies', cookie_file])
 
-    # ── Method 4: fdown.net ──────────────────────────────────────────────────
-    try:
-        r = requests.post(
-            "https://fdown.net/download.php",
-            data={"URLz": url},
-            headers={**BROWSER_HEADERS, "Referer": "https://fdown.net/"},
-            timeout=15,
-        )
-        html = r.text
-        hd = re.search(r'href="(https://[^"]+\.mp4[^"]*)"[^>]*>\s*HD', html, re.IGNORECASE)
-        sd = re.search(r'href="(https://[^"]+\.mp4[^"]*)"[^>]*>\s*SD', html, re.IGNORECASE)
-        m = hd or sd
-        if m:
-            print("[Facebook] fdown.net success")
-            return {"video_url": m.group(1), "title": "Facebook Video", "platform": "facebook"}
-    except Exception as e:
-        print(f"[Facebook] fdown.net error: {e}")
+        print(f"[Facebook] yt-dlp extracting: {url}")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(f"[Facebook] yt-dlp error: {result.stderr}")
+            return None
+            
+        data = json.loads(result.stdout)
+        
+        # Parse results
+        videos = []
+        formats = data.get('formats', [])
+        
+        # 1. Look for specific Facebook 'hd' and 'sd' tags
+        for f in formats:
+            fid = f.get('format_id')
+            if fid in ['hd', 'sd']:
+                videos.append({
+                    'url': f['url'],
+                    'fid': fid,
+                    'quality': 'HD Quality (Best)' if fid == 'hd' else 'SD Quality',
+                    'height': f.get('height') or (720 if fid == 'hd' else 360),
+                    'ext': f.get('ext', 'mp4')
+                })
 
-    # ── Method 5: savefrom.net worker ────────────────────────────────────────
-    try:
-        r = requests.get(
-            f"https://worker.sf-tools.com/savefrom.php?sf_url={requests.utils.quote(url)}&new=1",
-            headers={**BROWSER_HEADERS, "Referer": "https://en.savefrom.net/"},
-            timeout=15,
-        )
-        data = r.json()
-        links = data.get("url", [])
-        if links:
-            best = sorted(links, key=lambda x: int(x.get("id", 0) or 0), reverse=True)
-            video_url = best[0].get("url", "")
-            if video_url:
-                print("[Facebook] savefrom.net success")
-                return {"video_url": video_url, "title": data.get("meta", {}).get("title", "Facebook Video"), "platform": "facebook"}
-    except Exception as e:
-        print(f"[Facebook] savefrom error: {e}")
+        # 2. Add other combined formats if not already found
+        for f in formats:
+            if f.get('vcodec') != 'none' and f.get('acodec') != 'none' and f.get('ext') == 'mp4':
+                height = f.get('height', 0)
+                quality = f.get('format_note') or f.get('quality_label') or f'{height}p MP4'
+                # Don't add duplicates
+                if not any(v['height'] == height for v in videos):
+                    videos.append({
+                        'url': f['url'],
+                        'fid': f.get('format_id'),
+                        'quality': quality,
+                        'height': height,
+                        'ext': f.get('ext', 'mp4')
+                    })
+        
+        # Sort by height descending
+        videos.sort(key=lambda x: x['height'], reverse=True)
+        
+        # Deduplicate
+        seen = set()
+        unique_videos = []
+        for v in videos:
+            if v['quality'] not in seen:
+                seen.add(v['quality'])
+                unique_videos.append(v)
 
+        if unique_videos:
+            return {
+                "video_url": unique_videos[0]["url"], # For backward compatibility
+                "formats": unique_videos,
+                "title": data.get('title', 'Facebook Video'),
+                "platform": "facebook",
+                "thumbnail": data.get('thumbnail'),
+                "duration": data.get('duration_string')
+            }
+            
+    except Exception as e:
+        print(f"[Facebook] yt-dlp exception: {e}")
+        
     return None
+
+
 
 
 # ─── SNAPCHAT ────────────────────────────────────────────────────────────────

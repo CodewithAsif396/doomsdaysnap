@@ -1,17 +1,40 @@
 """
 Cookie Manager - VPS Mode
-User manually uploads cookies.txt via SCP.
-This module only validates and monitors cookie health.
+User manually uploads platform-specific cookies via Admin Panel.
+This module validates and monitors cookie health for each platform.
 """
 import os
 import time
 import yt_dlp
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-COOKIE_FILE = os.path.join(PROJECT_DIR, "cookies.txt")
 LOG_FILE = os.path.join(PROJECT_DIR, "maintenance.log")
-TEST_URL = "https://www.youtube.com/watch?v=BaW_jenozKc"
 
+PLATFORMS = {
+    "facebook": {
+        "file": "cookies_facebook.txt",
+        "test_url": "https://www.facebook.com/watch/?v=10158496791596729", # FB public video
+        "max_age_days": 15
+    },
+    "youtube": {
+        "file": "cookies_youtube.txt",
+        "test_url": "https://www.youtube.com/watch?v=BaW_jenozKc",
+        "max_age_days": 10
+    },
+    "instagram": {
+        "file": "cookies_instagram.txt",
+        "test_url": "https://www.instagram.com/reels/C53XpW2S9W_/",
+        "max_age_days": 7
+    },
+    "tiktok": {
+        "file": "cookies_tiktok.txt",
+        "test_url": "https://www.tiktok.com/@khaby.lame/video/7356230412351234306",
+        "max_age_days": 7
+    }
+}
+
+# Legacy support
+DEFAULT_COOKIE_FILE = os.path.join(PROJECT_DIR, "cookies.txt")
 
 def log(msg):
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -20,78 +43,81 @@ def log(msg):
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(line + "\n")
 
+def get_cookie_path(platform):
+    if platform in PLATFORMS:
+        return os.path.join(PROJECT_DIR, PLATFORMS[platform]["file"])
+    return DEFAULT_COOKIE_FILE
 
-def find_cookie_file():
-    for name in ["cookies.txt", "cookies (1).txt"]:
-        path = os.path.join(PROJECT_DIR, name)
-        if os.path.exists(path) and os.path.getsize(path) > 500:
-            return path
-    return None
-
-
-def cookie_age_days() -> float:
-    path = find_cookie_file()
-    if not path:
+def cookie_age_days(platform) -> float:
+    path = get_cookie_path(platform)
+    if not os.path.exists(path) or os.path.getsize(path) < 500:
         return 999.0
     return (time.time() - os.path.getmtime(path)) / 86400
 
+def validate_cookies(platform) -> tuple[bool, str]:
+    path = get_cookie_path(platform)
+    if not os.path.exists(path) or os.path.getsize(path) < 500:
+        # Fallback to legacy cookies.txt for facebook if specific one missing
+        if platform == "facebook" and os.path.exists(DEFAULT_COOKIE_FILE):
+            path = DEFAULT_COOKIE_FILE
+        else:
+            return False, f"Cookie file missing for {platform}"
 
-def validate_cookies() -> tuple[bool, str]:
-    path = find_cookie_file()
-    if not path:
-        return False, "Cookie file missing — upload cookies.txt via SCP"
-
+    test_url = PLATFORMS.get(platform, {}).get("test_url", "https://www.google.com")
+    
     opts = {
         'quiet': True,
         'no_warnings': True,
         'skip_download': True,
         'cookiefile': path,
-        'extractor_args': {'youtube': {'player_client': ['tvhtml5_embedded']}},
+        'no_check_certificate': True,
     }
+    
+    # Platform specific tweaks
+    if platform == "youtube":
+        opts['extractor_args'] = {'youtube': {'player_client': ['tvhtml5_embedded']}}
+
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(TEST_URL, download=False)
-            if info and info.get('formats'):
+            info = ydl.extract_info(test_url, download=False)
+            if info:
                 return True, "OK"
-            return False, "No formats returned"
+            return False, "No data returned"
     except Exception as e:
         err = str(e)
-        if "Sign in" in err or "bot" in err.lower():
-            return False, "BOT_DETECTED — upload fresh cookies.txt"
-        if "unavailable" in err.lower() or "private" in err.lower():
-            return True, "Test video issue (not cookies)"
-        return False, err[:150]
+        if "Sign in" in err or "bot" in err.lower() or "login" in err.lower():
+            return False, "EXPIRED/BLOCKED"
+        return False, err[:100]
 
-
-def should_refresh() -> tuple[bool, str]:
-    age = cookie_age_days()
-    if age > 5:
-        return True, f"Cookies {age:.0f} days old — consider uploading fresh ones"
-    valid, reason = validate_cookies()
-    if not valid:
-        return True, reason
-    return False, "OK"
-
-
-# No-op for compatibility with maintenance_worker.py
-def refresh_cookies(force: bool = False) -> bool:  # noqa: ARG001
-    valid, reason = validate_cookies()
-    if valid:
-        log(f"Cookies valid (age={cookie_age_days():.1f}d)")
-        return True
-    log(f"Cookies INVALID: {reason}")
-    log("ACTION: Upload fresh cookies.txt → scp cookies.txt user@vps:/path/to/project/")
-    return False
-
+def get_all_status():
+    status = {}
+    for p in PLATFORMS:
+        age = cookie_age_days(p)
+        valid, reason = validate_cookies(p)
+        
+        needs_update = False
+        if age > PLATFORMS[p]["max_age_days"] or not valid:
+            needs_update = True
+            
+        status[p] = {
+            "exists": age < 900,
+            "age_days": round(age, 1) if age < 900 else None,
+            "valid": valid,
+            "reason": reason,
+            "needs_update": needs_update
+        }
+    return status
 
 if __name__ == "__main__":
     import argparse
+    import json
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
-    valid, reason = validate_cookies()
-    age = cookie_age_days()
-    print(f"Cookie file : {find_cookie_file() or 'NOT FOUND'}")
-    print(f"Age         : {age:.1f} days")
-    print(f"Valid       : {valid}")
-    print(f"Reason      : {reason}")
+    
+    if args.json:
+        print(json.dumps(get_all_status()))
+    else:
+        for p, s in get_all_status().items():
+            print(f"[{p}] Valid: {s['valid']}, Age: {s['age_days']}d, Needs Update: {s['needs_update']}")

@@ -302,6 +302,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);displ
     <button class="nav-item" data-page="ads">
       <i class="fas fa-rectangle-ad"></i><span>Manage Ads</span>
     </button>
+    <button class="nav-item" data-page="cookies">
+      <i class="fas fa-cookie-bite"></i><span>Cookie Manager</span>
+    </button>
     <div class="nav-sep"></div>
     <button class="nav-item" data-page="settings">
       <i class="fas fa-sliders"></i><span>Site Settings</span>
@@ -323,7 +326,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);displ
     <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
     <h1 class="page-title" id="page-title">Overview</h1>
     <div class="topbar-right">
-      <div id="top-cookie-status" style="margin-right: 0.5rem; display: flex; align-items: center;"></div>
+      <div id="cookie-reminder-header" style="margin-right: 1rem;"></div>
       <div class="admin-badge"><i class="fas fa-shield-halved"></i><span>Admin</span></div>
     </div>
   </header>
@@ -725,6 +728,88 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);displ
         </div>
 
       </div><!-- /settings-grid -->
+    </div>
+
+    <!-- ── Cookie Manager ──────────────────────────────────────────────── -->
+    <div class="page" id="page-cookies">
+      <div class="section-header">
+        <h2>Cookie Management</h2>
+        <p style="color:var(--muted);font-size:.85rem">Upload fresh cookies.txt files for each platform to bypass bot detection.</p>
+      </div>
+
+      <div id="cookie-platforms-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));gap:1.5rem;">
+        <!-- Facebook -->
+        <div class="card">
+          <div class="card-header"><i class="fab fa-facebook" style="color:#1877f2;background:rgba(24,119,242,.1)"></i><h3>Facebook</h3></div>
+          <div id="status-facebook" class="cookie-status-box" style="margin-bottom:1rem"></div>
+          <div class="form-group">
+            <label>Upload cookies_facebook.txt</label>
+            <div style="display:flex;gap:.5rem">
+              <input type="file" id="file-facebook" style="display:none" onchange="cookieSelected('facebook')">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-facebook').click()">
+                <i class="fas fa-file-import"></i> <span id="label-facebook">Choose File</span>
+              </button>
+              <button id="btn-facebook" class="btn btn-primary btn-sm" style="display:none" onclick="performUpload('facebook')">
+                <i class="fas fa-upload"></i> Upload
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- YouTube -->
+        <div class="card">
+          <div class="card-header"><i class="fab fa-youtube" style="color:#ff0000;background:rgba(255,0,0,.1)"></i><h3>YouTube</h3></div>
+          <div id="status-youtube" class="cookie-status-box" style="margin-bottom:1rem"></div>
+          <div class="form-group">
+            <label>Upload cookies_youtube.txt</label>
+            <div style="display:flex;gap:.5rem">
+              <input type="file" id="file-youtube" style="display:none" onchange="cookieSelected('youtube')">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-youtube').click()">
+                <i class="fas fa-file-import"></i> <span id="label-youtube">Choose File</span>
+              </button>
+              <button id="btn-youtube" class="btn btn-primary btn-sm" style="display:none" onclick="performUpload('youtube')">
+                <i class="fas fa-upload"></i> Upload
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instagram -->
+        <div class="card">
+          <div class="card-header"><i class="fab fa-instagram" style="color:#e4405f;background:rgba(228,64,95,.1)"></i><h3>Instagram</h3></div>
+          <div id="status-instagram" class="cookie-status-box" style="margin-bottom:1rem"></div>
+          <div class="form-group">
+            <label>Upload cookies_instagram.txt</label>
+            <div style="display:flex;gap:.5rem">
+              <input type="file" id="file-instagram" style="display:none" onchange="cookieSelected('instagram')">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-instagram').click()">
+                <i class="fas fa-file-import"></i> <span id="label-instagram">Choose File</span>
+              </button>
+              <button id="btn-instagram" class="btn btn-primary btn-sm" style="display:none" onclick="performUpload('instagram')">
+                <i class="fas fa-upload"></i> Upload
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TikTok -->
+        <div class="card">
+          <div class="card-header"><i class="fab fa-tiktok" style="color:#fff;background:rgba(255,255,255,.1)"></i><h3>TikTok</h3></div>
+          <div id="status-tiktok" class="cookie-status-box" style="margin-bottom:1rem"></div>
+          <div class="form-group">
+            <label>Upload cookies_tiktok.txt</label>
+            <div style="display:flex;gap:.5rem">
+              <input type="file" id="file-tiktok" style="display:none" onchange="cookieSelected('tiktok')">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('file-tiktok').click()">
+                <i class="fas fa-file-import"></i> <span id="label-tiktok">Choose File</span>
+              </button>
+              <button id="btn-tiktok" class="btn btn-primary btn-sm" style="display:none" onclick="performUpload('tiktok')">
+                <i class="fas fa-upload"></i> Upload
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ── Embed Codes ─────────────────────────────────────────────────── -->
@@ -1636,58 +1721,69 @@ async function loadMaintenance() {
 }
 
 async function loadCookieStatus() {
-  const bar = document.getElementById('cookie-status-bar');
-  const top = document.getElementById('top-cookie-status');
+  const reminderEl = document.getElementById('cookie-reminder-header');
   try {
     const d = await api('/admin/cookies/status');
-    const age = d.age_days;
-    const color = !d.exists ? '#ef4444' : (age < 2 ? '#10b981' : (age < 5 ? '#f59e0b' : '#ef4444'));
-    const icon  = !d.exists ? 'fa-circle-xmark' : (age < 2 ? 'fa-circle-check' : (age < 5 ? 'fa-triangle-exclamation' : 'fa-circle-xmark'));
+    const platforms = Object.keys(d);
+    let reminderHtml = '';
     
-    // Update Top Bar
-    if (top) {
-      if (!d.exists) {
-        top.innerHTML = `<span style="color:${color};font-size:.75rem;font-weight:600;background:rgba(239,68,68,0.1);padding:.3rem .6rem;border-radius:6px;border:1px solid rgba(239,68,68,0.2)"><i class="fas ${icon}"></i> No Cookies</span>`;
-      } else {
-        top.innerHTML = `<span style="color:${color};font-size:.75rem;font-weight:600;background:rgba(255,255,255,0.03);padding:.3rem .6rem;border-radius:6px;border:1px solid var(--border)"><i class="fas ${icon}"></i> YT Cookies: ${age}d</span>`;
+    platforms.forEach(p => {
+      const s = d[p];
+      const box = document.getElementById(`status-${p}`);
+      if (box) {
+        const color = !s.exists ? 'var(--red)' : (!s.valid ? 'var(--yellow)' : 'var(--green)');
+        const icon = !s.exists ? 'fa-circle-xmark' : (!s.valid ? 'fa-triangle-exclamation' : 'fa-circle-check');
+        const label = !s.exists ? 'Missing' : (!s.valid ? 'Expired/Invalid' : 'Active');
+        
+        box.innerHTML = `
+          <div style="background:rgba(255,255,255,.03);padding:.75rem;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;gap:.75rem">
+            <i class="fas ${icon}" style="color:${color};font-size:1.1rem"></i>
+            <div style="flex:1">
+              <div style="font-size:.85rem;font-weight:600;color:${color}">${label}</div>
+              <div style="font-size:.7rem;color:var(--muted)">${s.age_days ? s.age_days + ' days old' : 'No file'} · ${s.reason || ''}</div>
+            </div>
+          </div>`;
       }
+
+      if (s.needs_update) {
+        reminderHtml += `<span class="badge badge-overlay" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:var(--red);margin-left:.5rem;padding:.35rem .6rem">
+          <i class="fas fa-triangle-exclamation"></i> Update ${p} cookies
+        </span>`;
+      }
+    });
+
+    if (reminderEl) {
+      reminderEl.innerHTML = reminderHtml || '<span style="color:var(--green);font-size:.75rem;font-weight:600"><i class="fas fa-circle-check"></i> All cookies OK</span>';
     }
 
-    // Update Maintenance Bar
-    if (bar) {
-      if (!d.exists) {
-        bar.innerHTML = `<i class="fas fa-circle-xmark" style="color:#ef4444"></i> <span style="color:#ef4444">No cookies.txt found — upload one below</span>`;
-      } else {
-        const label = age < 2 ? 'Fresh' : age < 5 ? 'Getting old' : 'Expired — upload now!';
-        bar.innerHTML = `<i class="fas ${icon}" style="color:${color}"></i>
-          <span style="color:${color};font-weight:600">${label}</span>
-          <span style="color:var(--muted);margin-left:.5rem">${age} days old · ${(d.size/1024).toFixed(0)} KB</span>`;
-      }
-    }
   } catch(e) {
-    if (top) top.innerHTML = `<span style="color:var(--muted);font-size:.75rem"><i class="fas fa-circle-exclamation"></i> Cookie Error</span>`;
-    if (bar) bar.innerHTML = `<i class="fas fa-circle-exclamation" style="color:#f59e0b"></i> <span>Could not reach cookie API</span>`;
+    console.error('Cookie status error:', e);
   }
 }
 
-function cookieFileSelected(input) {
-  const name = input.files[0]?.name || 'No file chosen';
-  document.getElementById('cookie-filename').textContent = name;
-  document.getElementById('cookie-upload-btn').style.display = input.files[0] ? 'inline-flex' : 'none';
+function cookieSelected(p) {
+  const input = document.getElementById(`file-${p}`);
+  const label = document.getElementById(`label-${p}`);
+  const btn = document.getElementById(`btn-${p}`);
+  if (input.files[0]) {
+    label.textContent = input.files[0].name;
+    btn.style.display = 'inline-flex';
+  }
 }
 
-async function uploadCookies() {
-  const input = document.getElementById('cookie-file-input');
-  const result = document.getElementById('cookie-upload-result');
-  const btn = document.getElementById('cookie-upload-btn');
+async function performUpload(p) {
+  const input = document.getElementById(`file-${p}`);
+  const btn = document.getElementById(`btn-${p}`);
+  const label = document.getElementById(`label-${p}`);
+  
   if (!input.files[0]) return;
-
+  
   const form = new FormData();
   form.append('cookies', input.files[0]);
+  form.append('platform', p);
 
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading…';
-  result.innerHTML = '';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
   try {
     const token = localStorage.getItem('adpanel_token');
@@ -1698,24 +1794,19 @@ async function uploadCookies() {
     });
     const data = await resp.json();
     if (data.success) {
-      const validColor = data.valid ? '#22c55e' : '#f59e0b';
-      const validIcon  = data.valid ? 'fa-circle-check' : 'fa-triangle-exclamation';
-      result.innerHTML = `<span style="color:${validColor}"><i class="fas ${validIcon}"></i> ${data.valid ? 'Uploaded & validated!' : 'Uploaded but: ' + data.reason}</span>`;
-      toast(data.valid ? 'Cookies uploaded successfully!' : 'Uploaded — validation warning', data.valid ? 'success' : 'warning');
+      toast(`${p.toUpperCase()} cookies updated!`, data.valid ? 'success' : 'warning');
       input.value = '';
-      document.getElementById('cookie-filename').textContent = 'No file chosen';
+      label.textContent = 'Choose File';
+      btn.style.display = 'none';
       loadCookieStatus();
     } else {
-      result.innerHTML = `<span style="color:#ef4444"><i class="fas fa-circle-xmark"></i> ${data.error}</span>`;
-      toast(data.error, 'error');
+      toast(data.error || 'Upload failed', 'error');
     }
   } catch(e) {
-    result.innerHTML = `<span style="color:#ef4444">Upload failed: ${e.message}</span>`;
-    toast('Upload failed', 'error');
+    toast('Upload failed: ' + e.message, 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-upload"></i> Upload';
-    btn.style.display = 'none';
   }
 }
 
