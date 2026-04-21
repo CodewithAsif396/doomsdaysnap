@@ -371,23 +371,159 @@ app.get('/api/health', (_req, res) => {
 app.get('/', (_req, res) => {
     fs.readFile(path.join(__dirname, 'app.html'), 'utf8', (err, data) => {
         if (err) return res.status(500).send('Error');
-        
+
+        // ── FAQPage + WebSite schema for home ──
+        const homeFaqSchema = {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                { "@type": "Question", "name": "What is Doomsdaysnap?", "acceptedAnswer": { "@type": "Answer", "text": "Doomsdaysnap is a free online video downloader that supports YouTube, TikTok, Instagram, Twitter/X, Facebook, and Snapchat. No sign-up required." } },
+                { "@type": "Question", "name": "Is Doomsdaysnap free to use?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, Doomsdaysnap is 100% free with no usage limits, no registration, and no hidden fees." } },
+                { "@type": "Question", "name": "Can I download TikTok videos without watermark?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Doomsdaysnap fetches the original source file before TikTok applies its watermark overlay, so downloads are completely watermark-free." } },
+                { "@type": "Question", "name": "Does Doomsdaysnap support 4K video downloads?", "acceptedAnswer": { "@type": "Answer", "text": "Yes, Doomsdaysnap supports 4K and 1080p HD downloads from YouTube and other platforms when the original content is available in those resolutions." } },
+                { "@type": "Question", "name": "Do I need to install any software?", "acceptedAnswer": { "@type": "Answer", "text": "No installation needed. Doomsdaysnap is a browser-based tool that works on all devices including Android, iPhone, Windows, and Mac." } },
+                { "@type": "Question", "name": "Can I convert YouTube videos to MP3?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. After pasting a YouTube link, select the Audio/MP3 option to extract the audio track in high quality." } },
+                { "@type": "Question", "name": "Which platforms does Doomsdaysnap support?", "acceptedAnswer": { "@type": "Answer", "text": "Doomsdaysnap supports YouTube, TikTok, Instagram Reels, Twitter/X, Facebook, and Snapchat Spotlights." } },
+                { "@type": "Question", "name": "Is it safe to use Doomsdaysnap?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Doomsdaysnap never stores your downloads, does not serve malware, and never asks for your social media credentials." } }
+            ]
+        };
+        const websiteSchema = {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Doomsdaysnap",
+            "url": "https://doomsdaysnap.online",
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": { "@type": "EntryPoint", "urlTemplate": "https://doomsdaysnap.online/?url={search_term_string}" },
+                "query-input": "required name=search_term_string"
+            }
+        };
+        const schemaInject = `\n<script type="application/ld+json">${JSON.stringify(homeFaqSchema)}</script>\n<script type="application/ld+json">${JSON.stringify(websiteSchema)}</script>`;
+
+        // ── Platform grid HTML for HOME_PLATFORM_GRID ──
+        const platformGridHtml = `
+            <div class="mt-16 sm:mt-20">
+                <div class="text-center mb-10">
+                    <h2 class="text-3xl font-bold mb-3">All Downloader Tools</h2>
+                    <p class="text-gray-400 max-w-xl mx-auto text-sm">One platform for all your video saving needs. Choose your source below.</p>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 stagger-reveal">
+                    <a href="/youtube-downloader" class="glass-card rounded-2xl p-5 flex flex-col items-center text-center hover-lift border-t-2 border-t-red-500/40" style="text-decoration:none">
+                        <div class="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-3"><i class="fa-brands fa-youtube text-2xl text-red-500"></i></div>
+                        <span class="text-white font-bold text-sm mb-1">YouTube</span>
+                        <span class="text-gray-500 text-xs">4K · MP4 · MP3</span>
+                    </a>
+                    <a href="/tiktok-downloader" class="glass-card rounded-2xl p-5 flex flex-col items-center text-center hover-lift border-t-2 border-t-[#25F4EE]/40" style="text-decoration:none">
+                        <div class="w-12 h-12 rounded-full bg-[#25F4EE]/10 flex items-center justify-center mb-3"><i class="fa-brands fa-tiktok text-2xl text-white"></i></div>
+                        <span class="text-white font-bold text-sm mb-1">TikTok</span>
+                        <span class="text-gray-500 text-xs">No Watermark · HD</span>
+                    </a>
+                    <a href="/instagram-downloader" class="glass-card rounded-2xl p-5 flex flex-col items-center text-center hover-lift border-t-2 border-t-pink-500/40" style="text-decoration:none">
+                        <div class="w-12 h-12 rounded-full bg-pink-500/10 flex items-center justify-center mb-3"><i class="fa-brands fa-instagram text-2xl text-pink-500"></i></div>
+                        <span class="text-white font-bold text-sm mb-1">Instagram</span>
+                        <span class="text-gray-500 text-xs">Reels · IGTV · Posts</span>
+                    </a>
+                    <a href="/twitter-downloader" class="glass-card rounded-2xl p-5 flex flex-col items-center text-center hover-lift border-t-2 border-t-gray-500/40" style="text-decoration:none">
+                        <div class="w-12 h-12 rounded-full bg-gray-500/10 flex items-center justify-center mb-3"><i class="fa-brands fa-x-twitter text-2xl text-white"></i></div>
+                        <span class="text-white font-bold text-sm mb-1">Twitter / X</span>
+                        <span class="text-gray-500 text-xs">HD · GIFs · Clips</span>
+                    </a>
+                    <a href="/facebook-downloader" class="glass-card rounded-2xl p-5 flex flex-col items-center text-center hover-lift border-t-2 border-t-blue-500/40" style="text-decoration:none">
+                        <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-3"><i class="fa-brands fa-facebook text-2xl text-blue-500"></i></div>
+                        <span class="text-white font-bold text-sm mb-1">Facebook</span>
+                        <span class="text-gray-500 text-xs">Public · Reels · Watch</span>
+                    </a>
+                    <a href="/snapchat-downloader" class="glass-card rounded-2xl p-5 flex flex-col items-center text-center hover-lift border-t-2 border-t-yellow-400/40" style="text-decoration:none">
+                        <div class="w-12 h-12 rounded-full bg-yellow-400/10 flex items-center justify-center mb-3"><i class="fa-brands fa-snapchat text-2xl text-yellow-400"></i></div>
+                        <span class="text-white font-bold text-sm mb-1">Snapchat</span>
+                        <span class="text-gray-500 text-xs">Spotlight · Stories</span>
+                    </a>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                    <a href="/youtube-to-mp3" class="glass-card rounded-2xl p-5 flex items-center gap-4 hover-lift" style="text-decoration:none">
+                        <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-music text-red-400"></i></div>
+                        <div><span class="text-white font-bold text-sm block">YouTube to MP3</span><span class="text-gray-500 text-xs">Extract audio free</span></div>
+                    </a>
+                    <a href="/shorts-downloader" class="glass-card rounded-2xl p-5 flex items-center gap-4 hover-lift" style="text-decoration:none">
+                        <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0"><i class="fa-brands fa-youtube text-red-400"></i></div>
+                        <div><span class="text-white font-bold text-sm block">Shorts Downloader</span><span class="text-gray-500 text-xs">Save YouTube Shorts HD</span></div>
+                    </a>
+                    <a href="/reels-downloader" class="glass-card rounded-2xl p-5 flex items-center gap-4 hover-lift" style="text-decoration:none">
+                        <div class="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center flex-shrink-0"><i class="fa-brands fa-instagram text-pink-400"></i></div>
+                        <div><span class="text-white font-bold text-sm block">Reels Downloader</span><span class="text-gray-500 text-xs">Instagram Reels in HD</span></div>
+                    </a>
+                </div>
+            </div>
+        `;
+
+        // ── Home FAQ section HTML ──
+        const homeFaqHtml = `
+            <section class="max-w-3xl mx-auto px-4 sm:px-6 py-10">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-3">Frequently Asked Questions</h2>
+                    <p class="text-gray-400 text-sm">Everything you need to know about Doomsdaysnap.</p>
+                </div>
+                <div class="space-y-3">
+                    <div class="glass-card rounded-xl overflow-hidden hover-lift stagger-item"><button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none"><span class="font-semibold text-gray-200">Is Doomsdaysnap completely free?</span><i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i></button><div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-white/5 pt-4">Yes, 100% free with no usage limits, no registration, and no hidden fees. Download as many videos as you need.</div></div>
+                    <div class="glass-card rounded-xl overflow-hidden hover-lift stagger-item"><button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none"><span class="font-semibold text-gray-200">Can I download TikTok videos without watermark?</span><i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i></button><div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-white/5 pt-4">Yes. Our engine fetches the original video file before TikTok overlays its watermark, giving you a completely clean download.</div></div>
+                    <div class="glass-card rounded-xl overflow-hidden hover-lift stagger-item"><button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none"><span class="font-semibold text-gray-200">Does it support 4K YouTube downloads?</span><i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i></button><div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-white/5 pt-4">Yes. We fetch the highest quality stream available — including 4K/2160p and 1080p Full HD when the original video supports it.</div></div>
+                    <div class="glass-card rounded-xl overflow-hidden hover-lift stagger-item"><button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none"><span class="font-semibold text-gray-200">Do I need to install any software?</span><i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i></button><div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-white/5 pt-4">No installation required. Doomsdaysnap works entirely in your browser on all devices — Android, iPhone, Windows, Mac, and Linux.</div></div>
+                    <div class="glass-card rounded-xl overflow-hidden hover-lift stagger-item"><button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none"><span class="font-semibold text-gray-200">Can I convert YouTube videos to MP3?</span><i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i></button><div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-white/5 pt-4">Absolutely. Paste a YouTube link and choose the Audio/MP3 option. You'll get the highest-quality audio stream available.</div></div>
+                    <div class="glass-card rounded-xl overflow-hidden hover-lift stagger-item"><button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none"><span class="font-semibold text-gray-200">Which platforms are supported?</span><i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i></button><div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-white/5 pt-4">YouTube, TikTok, Instagram Reels, Twitter/X, Facebook, and Snapchat Spotlights are all fully supported.</div></div>
+                    <div class="glass-card rounded-xl overflow-hidden hover-lift stagger-item"><button class="faq-btn w-full px-6 py-4 text-left flex justify-between items-center focus:outline-none"><span class="font-semibold text-gray-200">Is it safe and private?</span><i class="fa-solid fa-chevron-down text-gray-500 transition-transform duration-300 flex-shrink-0 ml-4"></i></button><div class="faq-content hidden px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-white/5 pt-4">Yes. We never store your downloads, never log your activity, and never ask for social media credentials. Your privacy is our priority.</div></div>
+                </div>
+            </section>
+        `;
+
+        // ── Blog preview section ──
+        const blogPreviewHtml = `
+            <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 border-t border-white/5">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold mb-3 reveal">Latest Guides & Tips</h2>
+                    <p class="text-gray-400 max-w-xl mx-auto reveal delay-100 text-sm">Learn how to download videos from every platform.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 stagger-reveal">
+                    ${BLOG_POSTS.slice(0, 4).map(p => `
+                    <a href="/blog/${p.slug}" class="glass-card rounded-2xl p-5 hover-lift stagger-item flex flex-col" style="text-decoration:none">
+                        <span class="text-xs text-purple-400 font-semibold uppercase mb-2">${p.category}</span>
+                        <h3 class="text-white font-bold text-sm leading-snug mb-2 flex-1">${p.title}</h3>
+                        <span class="text-gray-600 text-xs mt-auto">${p.readTime}</span>
+                    </a>`).join('')}
+                </div>
+                <div class="text-center mt-8">
+                    <a href="/blog" class="inline-flex items-center gap-2 text-purple-400 hover:text-purple-300 font-semibold text-sm transition-colors" style="text-decoration:none">
+                        View All Guides <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </section>
+        `;
+
         // Hide small tab row for home page but KEEP the main search interaction
         let modified = data.replace('id="platform-tabs-row"', 'id="platform-tabs-row" style="display:none !important"');
-        
+
+        // Inject FAQ + WebSite schema into <head>
+        modified = modified.replace('</head>', `${schemaInject}\n</head>`);
+
         // Restore essential sections for Home Page functionality
-        // (Previously hidden for 'Selection Hub' mode)
         modified = modified.replace('id="downloader-input-section" style="display:none !important"', 'id="downloader-input-section"');
         modified = modified.replace('id="mobile-paste-sample-row" style="display:none !important"', 'id="mobile-paste-sample-row"');
-        
-        // Clear sections that are not needed on home page
-        modified = modified.replace('<!-- HOME_PLATFORM_GRID -->', '');
+
+        // Inject platform grid into home-platform-grid div
+        modified = modified.replace('<!-- HOME_PLATFORM_GRID -->', platformGridHtml);
+
+        // Inject FAQ section replacing TOOL_FAQ placeholder
+        modified = modified.replace('<!-- TOOL_FAQ -->', homeFaqHtml);
+
+        // Inject blog preview replacing TOOL_RICH_CONTENT
+        modified = modified.replace('<!-- TOOL_RICH_CONTENT -->', blogPreviewHtml);
+
+        // Clear unused placeholders
         modified = modified.replace('<!-- TOOL_STEPS -->', '');
-        modified = modified.replace('<!-- TOOL_FAQ -->', '');
         modified = modified.replace('<!-- TOOL_GRID_ITEMS -->', '');
-        modified = modified.replace('<!-- TOOL_RICH_CONTENT -->', '');
         modified = modified.replace('<!-- LEGAL_CONTENT -->', '');
-        
+        // Clear remaining HOME_PLATFORM_GRID comments (non-div ones)
+        modified = modified.replace(/<!-- HOME_PLATFORM_GRID -->/g, '');
+
         res.send(modified);
     });
 });
@@ -440,7 +576,7 @@ const LEGAL_DATA = {
 };
 
 ['privacy', 'tos'].forEach(slug => {
-    app.get(`/${slug}`, (req, res) => {
+    app.get(`/${slug}`, (_req, res) => {
         const legal = LEGAL_DATA[slug];
         if (!legal) return res.status(404).send('Not Found');
 
@@ -733,6 +869,353 @@ const PLATFORM_SEO_DATA = {
     },
 };
 
+// ─── Blog / Article SEO Data ──────────────────────────────────────────────────
+const BLOG_POSTS = [
+    {
+        slug: 'how-to-download-youtube-videos-4k',
+        title: 'How to Download YouTube Videos in 4K for Free (2026 Guide)',
+        desc: 'Learn the easiest way to download YouTube videos in 4K Ultra HD quality for free. Step-by-step guide using Doomsdaysnap — no software needed.',
+        date: '2026-04-10',
+        readTime: '6 min read',
+        category: 'YouTube',
+        keywords: 'download youtube videos 4k, youtube 4k downloader free, save youtube 4k video, how to download youtube in 4k',
+        content: `
+            <p class="text-lg text-gray-300 leading-relaxed mb-6">Downloading YouTube videos in 4K Ultra HD used to require expensive software. In 2026, the fastest and easiest method is to use a free online tool like <strong class="text-white">Doomsdaysnap</strong> — no installation required, no watermarks, and no registration.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Why Download YouTube Videos in 4K?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Whether you are a content creator who needs reference footage, a student archiving educational content, or simply someone who wants to watch videos offline during a flight — 4K downloads ensure the sharpest image quality on any screen. A 4K YouTube video at 3840×2160 resolution offers four times the pixel density of Full HD, meaning every detail is crystal clear on a 4K monitor or modern TV.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Step-by-Step: Download YouTube 4K Video with Doomsdaysnap</h2>
+            <ol class="list-decimal list-inside text-gray-400 space-y-4 mb-6 ml-2">
+                <li><strong class="text-white">Open YouTube</strong> and navigate to the 4K video you want to download. Look for videos tagged with "4K" or "2160p".</li>
+                <li><strong class="text-white">Copy the URL</strong> from your browser address bar (e.g., <code class="text-purple-400 bg-white/5 px-1 rounded">https://www.youtube.com/watch?v=XXXXX</code>).</li>
+                <li><strong class="text-white">Visit Doomsdaysnap</strong> at <a href="https://doomsdaysnap.online" class="text-purple-400 underline">doomsdaysnap.online</a> and paste your link in the search box.</li>
+                <li><strong class="text-white">Select 4K (2160p)</strong> from the list of available quality options.</li>
+                <li><strong class="text-white">Click Download</strong> and the file will start saving directly to your device.</li>
+            </ol>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">What Formats Are Available?</h2>
+            <p class="text-gray-400 leading-relaxed mb-4">Doomsdaysnap provides multiple formats for every video:</p>
+            <ul class="list-disc list-inside text-gray-400 space-y-2 mb-6 ml-2">
+                <li><strong class="text-white">4K MP4 (2160p)</strong> — Best quality for modern TVs and monitors</li>
+                <li><strong class="text-white">1080p Full HD MP4</strong> — Perfect balance of quality and file size</li>
+                <li><strong class="text-white">720p HD MP4</strong> — Great for mobile devices and data saving</li>
+                <li><strong class="text-white">MP3 Audio</strong> — Extract just the audio from any YouTube video</li>
+                <li><strong class="text-white">WEBM</strong> — Open-source format with excellent compression</li>
+            </ul>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Does Doomsdaysnap Support YouTube Shorts in 4K?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Yes! YouTube Shorts are supported too. Simply paste the Shorts URL (which looks like <code class="text-purple-400 bg-white/5 px-1 rounded">https://www.youtube.com/shorts/XXXXX</code>) and choose your preferred quality. Most Shorts are uploaded in 1080p vertical format, so that will typically be the highest option available.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Tips for the Best 4K Download Experience</h2>
+            <ul class="list-disc list-inside text-gray-400 space-y-2 mb-6 ml-2">
+                <li>Make sure you have a stable internet connection — 4K files can be 1GB or more.</li>
+                <li>Use a desktop browser for the fastest download speeds.</li>
+                <li>If 4K is not listed, the original uploader may not have uploaded in 4K.</li>
+                <li>Doomsdaysnap always fetches the highest available stream directly from YouTube servers.</li>
+            </ul>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Frequently Asked Questions</h2>
+            <div class="space-y-4 mb-6">
+                <div class="bg-white/5 rounded-xl p-5"><p class="font-semibold text-white mb-1">Is it free to download YouTube 4K videos?</p><p class="text-gray-400 text-sm">Yes, Doomsdaysnap is completely free with no usage limits or hidden fees.</p></div>
+                <div class="bg-white/5 rounded-xl p-5"><p class="font-semibold text-white mb-1">Do I need to install any software?</p><p class="text-gray-400 text-sm">No. Doomsdaysnap works entirely in your browser — no downloads or extensions required.</p></div>
+                <div class="bg-white/5 rounded-xl p-5"><p class="font-semibold text-white mb-1">How long does the download take?</p><p class="text-gray-400 text-sm">Processing takes 2–10 seconds. The actual file transfer depends on your internet speed and the video length.</p></div>
+            </div>
+        `
+    },
+    {
+        slug: 'tiktok-video-download-without-watermark',
+        title: 'How to Download TikTok Videos Without Watermark (2026)',
+        desc: 'Remove the TikTok watermark and download any TikTok video in HD quality for free. The complete guide using Doomsdaysnap.',
+        date: '2026-04-08',
+        readTime: '5 min read',
+        category: 'TikTok',
+        keywords: 'tiktok downloader without watermark, download tiktok no watermark, remove tiktok watermark, save tiktok video hd',
+        content: `
+            <p class="text-lg text-gray-300 leading-relaxed mb-6">TikTok is one of the world's most-watched platforms, but it stamps a watermark on every video you try to save. This guide shows you how to download any TikTok video completely <strong class="text-white">watermark-free in HD quality</strong> — in seconds, using only your browser.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Why TikTok Adds a Watermark</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">TikTok's built-in "Save Video" feature places a large logo and the creator's username across the video. This is by design — they want content to be traced back to their platform. But for content creators who want to repurpose clips, video editors, or anyone who simply values a clean video, the watermark is a significant inconvenience.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">How to Download TikTok Without Watermark Using Doomsdaysnap</h2>
+            <ol class="list-decimal list-inside text-gray-400 space-y-4 mb-6 ml-2">
+                <li><strong class="text-white">Open TikTok</strong> on your phone or PC and find the video you want to save.</li>
+                <li><strong class="text-white">Tap Share → Copy Link</strong> (on mobile) or copy the URL from the browser address bar.</li>
+                <li><strong class="text-white">Open Doomsdaysnap</strong> at <a href="https://doomsdaysnap.online/tiktok-downloader" class="text-purple-400 underline">doomsdaysnap.online/tiktok-downloader</a>.</li>
+                <li><strong class="text-white">Paste the TikTok link</strong> into the input box and press Enter or click Download.</li>
+                <li><strong class="text-white">Download the clean HD video</strong> — no watermark, no TikTok branding.</li>
+            </ol>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">How Doomsdaysnap Removes the Watermark</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Our extraction engine accesses TikTok's original CDN (Content Delivery Network) URL — the raw video file that exists <em>before</em> TikTok overlays its watermark during playback. This means you get the purest version of the video: full resolution, original audio, zero overlays. This is fundamentally different from screen-recording or using editing software to crop the logo.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Supported TikTok URL Formats</h2>
+            <ul class="list-disc list-inside text-gray-400 space-y-2 mb-6 ml-2">
+                <li>Standard TikTok video: <code class="text-purple-400 bg-white/5 px-1 rounded">tiktok.com/@username/video/123456</code></li>
+                <li>Short share link: <code class="text-purple-400 bg-white/5 px-1 rounded">vm.tiktok.com/XXXXXXX/</code></li>
+                <li>Mobile share URL: <code class="text-purple-400 bg-white/5 px-1 rounded">m.tiktok.com/v/XXXXXXX.html</code></li>
+            </ul>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Can I Download TikTok Slideshows?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">TikTok Slideshows (photo posts with music) are also supported. Doomsdaysnap will extract the video version of the slideshow as a full MP4 with the original audio track included.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">FAQs</h2>
+            <div class="space-y-4 mb-6">
+                <div class="bg-white/5 rounded-xl p-5"><p class="font-semibold text-white mb-1">Is downloading TikTok videos legal?</p><p class="text-gray-400 text-sm">Downloading publicly available TikTok videos for personal use is generally acceptable. Do not redistribute downloaded content without the creator's permission.</p></div>
+                <div class="bg-white/5 rounded-xl p-5"><p class="font-semibold text-white mb-1">Does the creator get notified?</p><p class="text-gray-400 text-sm">No. Doomsdaysnap accesses the public video URL — no notification is sent to the creator.</p></div>
+                <div class="bg-white/5 rounded-xl p-5"><p class="font-semibold text-white mb-1">What quality are the downloads?</p><p class="text-gray-400 text-sm">We always serve the highest available quality, typically 1080p HD with the original audio bitrate.</p></div>
+            </div>
+        `
+    },
+    {
+        slug: 'youtube-to-mp3-converter-guide',
+        title: 'Best Free YouTube to MP3 Converter in 2026 (No Install)',
+        desc: 'Convert any YouTube video to MP3 audio instantly for free. No software installation needed — works on mobile and PC.',
+        date: '2026-04-05',
+        readTime: '5 min read',
+        category: 'YouTube',
+        keywords: 'youtube to mp3, youtube mp3 converter, convert youtube to mp3 free, youtube mp3 downloader 2026',
+        content: `
+            <p class="text-lg text-gray-300 leading-relaxed mb-6">Converting YouTube videos to MP3 is one of the most searched topics on the internet. Whether you want to save a podcast, a music video soundtrack, or a lecture for offline listening, the fastest method in 2026 is using <strong class="text-white">Doomsdaysnap's free online converter</strong> — no app installation, no account, no cost.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">How to Convert YouTube to MP3 in 3 Steps</h2>
+            <ol class="list-decimal list-inside text-gray-400 space-y-4 mb-6 ml-2">
+                <li><strong class="text-white">Copy the YouTube URL</strong> — from your browser or the YouTube Share menu.</li>
+                <li><strong class="text-white">Paste it on Doomsdaysnap</strong> — go to <a href="https://doomsdaysnap.online" class="text-purple-400 underline">doomsdaysnap.online</a> and paste the link.</li>
+                <li><strong class="text-white">Select MP3 Audio</strong> — from the format list and click Download. Your MP3 will be ready in seconds.</li>
+            </ol>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">What Bitrate is the MP3?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Doomsdaysnap extracts audio at the highest bitrate available from the YouTube source — typically <strong class="text-white">128kbps to 320kbps</strong> depending on what the uploader provided. This ensures the best possible audio quality without any re-encoding artifacts. For music and podcasts, the quality difference between a compressed MP3 and the original is virtually undetectable to the human ear.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Use Cases for YouTube MP3 Downloads</h2>
+            <ul class="list-disc list-inside text-gray-400 space-y-2 mb-6 ml-2">
+                <li><strong class="text-white">Music & Playlists</strong> — Save your favorite songs and listen without a data connection.</li>
+                <li><strong class="text-white">Podcasts & Lectures</strong> — Educational content to listen during commutes.</li>
+                <li><strong class="text-white">Sound Effects</strong> — For video creators and musicians who need audio samples.</li>
+                <li><strong class="text-white">Language Learning</strong> — Save conversations and lessons for repeated listening.</li>
+                <li><strong class="text-white">Meditation & ASMR</strong> — Save relaxation audio to listen without internet.</li>
+            </ul>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Does It Work on iPhone and Android?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Yes — Doomsdaysnap is fully mobile-optimized. On iPhone (iOS 13+), the file downloads to your Files app. On Android, it saves to your Downloads folder. From there, you can add it to any music player app, transfer to AirPods, or upload to a cloud service.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Is There a Video Length Limit?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Doomsdaysnap supports videos of any length — from 30-second Shorts to 4-hour livestream recordings. However, very long videos may take slightly more processing time to extract the audio stream.</p>
+            <div class="space-y-4 mb-6">
+                <div class="bg-white/5 rounded-xl p-5"><p class="font-semibold text-white mb-1">Is YouTube to MP3 free?</p><p class="text-gray-400 text-sm">Yes. Doomsdaysnap is 100% free with unlimited conversions and no sign-up required.</p></div>
+                <div class="bg-white/5 rounded-xl p-5"><p class="font-semibold text-white mb-1">Can I convert YouTube playlists to MP3?</p><p class="text-gray-400 text-sm">Currently, you can convert individual videos. Paste each video URL separately to extract the audio.</p></div>
+            </div>
+        `
+    },
+    {
+        slug: 'download-instagram-reels-hd',
+        title: 'How to Download Instagram Reels in HD Quality (2026)',
+        desc: 'Save any Instagram Reel to your phone or PC in full HD quality. Free, fast, and no Instagram login needed.',
+        date: '2026-04-02',
+        readTime: '4 min read',
+        category: 'Instagram',
+        keywords: 'instagram reels downloader, download instagram reels hd, save instagram reels, instagram reel download free',
+        content: `
+            <p class="text-lg text-gray-300 leading-relaxed mb-6">Instagram Reels are short, engaging videos — and sometimes you find one worth keeping. Doomsdaysnap lets you <strong class="text-white">download any public Instagram Reel in HD quality</strong> without needing an Instagram account or any app installation.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Step-by-Step: Download Instagram Reels</h2>
+            <ol class="list-decimal list-inside text-gray-400 space-y-4 mb-6 ml-2">
+                <li><strong class="text-white">Find the Reel</strong> on Instagram and tap the three-dot (⋯) menu.</li>
+                <li><strong class="text-white">Tap "Copy Link"</strong> to copy the Reel's URL to your clipboard.</li>
+                <li><strong class="text-white">Open Doomsdaysnap</strong> at <a href="https://doomsdaysnap.online/instagram-downloader" class="text-purple-400 underline">doomsdaysnap.online/instagram-downloader</a>.</li>
+                <li><strong class="text-white">Paste the link</strong> and click Download. The Reel will be saved in full HD.</li>
+            </ol>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">What Types of Instagram Content Can I Download?</h2>
+            <ul class="list-disc list-inside text-gray-400 space-y-2 mb-6 ml-2">
+                <li><strong class="text-white">Reels</strong> — Short vertical videos up to 90 seconds</li>
+                <li><strong class="text-white">IGTV Videos</strong> — Long-form video content</li>
+                <li><strong class="text-white">Public Posts</strong> — Video posts from public profiles</li>
+                <li><strong class="text-white">Stories</strong> — Publicly accessible story videos</li>
+            </ul>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Why Can't I Download Private Instagram Reels?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Doomsdaysnap only supports public content. Private accounts require Instagram login credentials to access, which we do not support for privacy and security reasons. If a Reel is from a private account, set your account to public temporarily or ask the creator to share it directly with you.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Download Instagram Reels on iPhone</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">On iOS, after tapping Download, the file saves to your Safari Downloads (accessible via the Files app). To add it to Photos, open the file in Files and tap Share → Save Video. This works on iOS 13 and later with Safari browser.</p>
+        `
+    },
+    {
+        slug: 'save-facebook-videos-to-phone',
+        title: 'How to Download Facebook Videos to Your Phone (2026 Guide)',
+        desc: 'Download any Facebook video to your phone or computer in HD quality for free. Works on Android and iPhone without any app.',
+        date: '2026-03-28',
+        readTime: '4 min read',
+        category: 'Facebook',
+        keywords: 'download facebook videos, save facebook video to phone, facebook video downloader, facebook downloader free',
+        content: `
+            <p class="text-lg text-gray-300 leading-relaxed mb-6">Facebook makes it surprisingly difficult to save videos directly from its platform. With Doomsdaysnap, you can <strong class="text-white">download any public Facebook video in HD</strong> directly to your phone or computer — no app, no account, and completely free.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">How to Download Facebook Videos (Step by Step)</h2>
+            <ol class="list-decimal list-inside text-gray-400 space-y-4 mb-6 ml-2">
+                <li><strong class="text-white">Find the Facebook video</strong> you want to save. Click on it to open the full video view.</li>
+                <li><strong class="text-white">Copy the URL</strong> from your browser's address bar, or right-click the video and choose "Copy video URL".</li>
+                <li><strong class="text-white">Go to Doomsdaysnap</strong> at <a href="https://doomsdaysnap.online/facebook-downloader" class="text-purple-400 underline">doomsdaysnap.online/facebook-downloader</a>.</li>
+                <li><strong class="text-white">Paste the URL</strong> and press Enter. Select HD or SD quality and download.</li>
+            </ol>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">What Facebook Videos Are Supported?</h2>
+            <ul class="list-disc list-inside text-gray-400 space-y-2 mb-6 ml-2">
+                <li>Public Facebook post videos</li>
+                <li>Facebook Watch videos</li>
+                <li>Shared video posts from public pages</li>
+                <li>Facebook Reels (public)</li>
+            </ul>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Downloading Facebook Videos on Android</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Android is the simplest experience — open Doomsdaysnap in Chrome, paste the Facebook URL, select your quality, and tap Download. The video will appear in your Downloads folder and can be opened in any video player or moved to your Gallery.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Why Is My Facebook Video Not Downloading?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">The most common reasons a Facebook video might not download are: (1) the video is from a private group or profile, (2) the content has been restricted by the original poster, or (3) the URL was copied incorrectly. Make sure you are copying the full URL from the Facebook video page, not just the share dialog link.</p>
+        `
+    },
+    {
+        slug: 'download-twitter-x-videos-free',
+        title: 'How to Download Twitter (X) Videos for Free in 2026',
+        desc: 'Save any Twitter or X video to your device in high quality. Free online tool — no app needed, works on all devices.',
+        date: '2026-03-25',
+        readTime: '4 min read',
+        category: 'Twitter/X',
+        keywords: 'twitter video downloader, x video download, save tweet video, download twitter videos free, x downloader',
+        content: `
+            <p class="text-lg text-gray-300 leading-relaxed mb-6">X (formerly Twitter) hosts millions of videos daily — breaking news clips, sports highlights, funny moments, and exclusive content. Doomsdaysnap makes it simple to <strong class="text-white">download any public Twitter/X video in HD quality</strong> instantly and for free.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">How to Download Twitter/X Videos</h2>
+            <ol class="list-decimal list-inside text-gray-400 space-y-4 mb-6 ml-2">
+                <li><strong class="text-white">Find the tweet</strong> containing the video you want to save on X.com or Twitter.com.</li>
+                <li><strong class="text-white">Copy the tweet URL</strong> from your browser address bar (e.g., <code class="text-purple-400 bg-white/5 px-1 rounded">x.com/username/status/1234567890</code>).</li>
+                <li><strong class="text-white">Open Doomsdaysnap</strong> at <a href="https://doomsdaysnap.online/twitter-downloader" class="text-purple-400 underline">doomsdaysnap.online/twitter-downloader</a>.</li>
+                <li><strong class="text-white">Paste the URL</strong> and click Download to save the video.</li>
+            </ol>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">What Quality Formats Are Available for Twitter Videos?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Twitter/X videos are available in multiple resolutions. Doomsdaysnap presents all available options, which typically include <strong class="text-white">1280×720 (HD)</strong>, <strong class="text-white">854×480 (SD)</strong>, and sometimes 1920×1080 (Full HD) for high-quality uploads. We recommend HD for the best experience.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Can I Download Twitter GIFs?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Yes! Twitter GIFs are actually stored as MP4 files on Twitter's servers. Doomsdaysnap will download them as MP4 videos, which you can then convert to GIF format using any free converter if needed. The downloaded MP4 will loop seamlessly just like the original GIF.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Twitter Video Not Downloading?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Make sure the tweet is from a public account. Protected (private) accounts restrict video access. Also ensure you are copying the URL of the specific tweet, not just the user's profile page.</p>
+        `
+    },
+    {
+        slug: 'how-to-download-youtube-shorts',
+        title: 'How to Download YouTube Shorts in High Quality (2026)',
+        desc: 'Save YouTube Shorts to your phone or PC in HD quality. Free, instant, no app needed — complete guide for Android and iPhone.',
+        date: '2026-03-20',
+        readTime: '4 min read',
+        category: 'YouTube',
+        keywords: 'youtube shorts download, save youtube shorts, download youtube shorts hd, youtube shorts downloader free',
+        content: `
+            <p class="text-lg text-gray-300 leading-relaxed mb-6">YouTube Shorts are 60-second vertical videos that have taken over the platform. If you find a Short you want to keep — a tutorial, a funny moment, a recipe — Doomsdaysnap lets you <strong class="text-white">download it in HD for free</strong> in seconds.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">How to Download YouTube Shorts (Step by Step)</h2>
+            <ol class="list-decimal list-inside text-gray-400 space-y-4 mb-6 ml-2">
+                <li><strong class="text-white">Open the YouTube Short</strong> you want to download on your phone or PC.</li>
+                <li><strong class="text-white">Copy the URL</strong> — it will look like <code class="text-purple-400 bg-white/5 px-1 rounded">youtube.com/shorts/XXXXXXXXXXX</code>.</li>
+                <li><strong class="text-white">Visit Doomsdaysnap</strong> at <a href="https://doomsdaysnap.online/youtube-downloader" class="text-purple-400 underline">doomsdaysnap.online/youtube-downloader</a>.</li>
+                <li><strong class="text-white">Paste the link</strong> and click Extract. Then choose your preferred resolution and download.</li>
+            </ol>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Are YouTube Shorts in HD?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Most YouTube Shorts are uploaded in 1080×1920 (Full HD vertical) resolution. Doomsdaysnap always fetches the highest available quality, so you will typically get a crisp 1080p HD download that looks perfect on any phone screen.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Can I Download YouTube Shorts as MP3?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Absolutely. If you only need the audio from a YouTube Short — for example, a music Short or a quick speech — simply choose the MP3 audio option from the format list. The audio quality matches the source at the highest available bitrate.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Why Is YouTube Short URL Different?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">YouTube Shorts use the <code class="text-purple-400 bg-white/5 px-1 rounded">/shorts/</code> URL format, which is technically just a regular YouTube video displayed in vertical mode. Doomsdaysnap recognizes both Shorts URLs and regular YouTube URLs seamlessly.</p>
+        `
+    },
+    {
+        slug: 'is-it-legal-to-download-youtube-videos',
+        title: 'Is It Legal to Download YouTube Videos? (Complete 2026 Guide)',
+        desc: 'Understand the legality of downloading YouTube videos. Learn what is allowed, what to avoid, and how to stay safe.',
+        date: '2026-03-15',
+        readTime: '7 min read',
+        category: 'Guide',
+        keywords: 'is it legal to download youtube videos, youtube download legal, can you download youtube videos, youtube terms of service download',
+        content: `
+            <p class="text-lg text-gray-300 leading-relaxed mb-6">One of the most common questions about video downloading is: <strong class="text-white">Is it legal to download YouTube videos?</strong> The answer depends on several factors — including the purpose of the download, whether the content is copyrighted, and your country's laws. This comprehensive guide breaks it all down.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">YouTube's Terms of Service</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">YouTube's Terms of Service (Section 5) state that users may not download content unless a download button or link is explicitly provided by YouTube. This means that technically, downloading videos via third-party tools may violate YouTube's ToS. <em>However, violating a platform's Terms of Service is not the same as breaking the law.</em> YouTube can only terminate your account or restrict your access — they cannot pursue criminal or civil action against you simply for downloading a video for personal use.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Copyright Law and Fair Use</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">The more important legal consideration is <strong class="text-white">copyright law</strong>. Most YouTube videos are copyrighted by their creators. Downloading them for personal viewing (not redistribution, not monetization) generally falls under <strong class="text-white">"fair use"</strong> in the United States and similar doctrines in other countries. This means:</p>
+            <ul class="list-disc list-inside text-gray-400 space-y-2 mb-6 ml-2">
+                <li><strong class="text-white text-green-400">Generally OK:</strong> Downloading for personal offline viewing</li>
+                <li><strong class="text-white text-green-400">Generally OK:</strong> Downloading your own uploaded videos</li>
+                <li><strong class="text-white text-green-400">Generally OK:</strong> Downloading Creative Commons or public domain content</li>
+                <li><strong class="text-white text-red-400">Not OK:</strong> Redistributing downloaded videos on other platforms</li>
+                <li><strong class="text-white text-red-400">Not OK:</strong> Monetizing someone else's downloaded content</li>
+                <li><strong class="text-white text-red-400">Not OK:</strong> Using clips commercially without a license</li>
+            </ul>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">What About YouTube Premium's Offline Feature?</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">YouTube Premium ($13.99/month) includes an official offline download feature. However, these downloads are locked within the YouTube app and expire after 30 days. They cannot be exported to other apps or devices. For content you own the rights to, or creative commons video, a direct download is far more practical.</p>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Legal Use Cases for Downloading Videos</h2>
+            <ul class="list-disc list-inside text-gray-400 space-y-2 mb-6 ml-2">
+                <li>Educational institutions archiving lecture videos</li>
+                <li>Researchers documenting online content for academic study</li>
+                <li>Journalists preserving evidence from public posts</li>
+                <li>Content creators backing up their own uploaded videos</li>
+                <li>Personal offline access in areas with poor internet connectivity</li>
+            </ul>
+            <h2 class="text-2xl font-bold text-white mb-4 mt-10">Our Recommendation</h2>
+            <p class="text-gray-400 leading-relaxed mb-6">Always respect creators' work. If you are downloading content for personal, non-commercial use, you are very unlikely to face any legal issues. If you plan to use downloaded content in any project or publication, verify the license first. Look for Creative Commons licensed videos, which explicitly allow reuse.</p>
+            <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-6 mt-8">
+                <p class="text-purple-300 font-semibold mb-2">Important Disclaimer</p>
+                <p class="text-gray-400 text-sm">This article is for informational purposes only and does not constitute legal advice. Laws vary by country and jurisdiction. Consult a qualified attorney for legal guidance specific to your situation.</p>
+            </div>
+        `
+    }
+];
+
+// ─── Additional SEO Landing Pages ─────────────────────────────────────────────
+const ADDITIONAL_SEO_DATA = {
+    'youtube-to-mp3': {
+        title: 'YouTube to MP3 Converter — Free, Fast & HD Audio | Doomsdaysnap',
+        desc: 'Convert any YouTube video to MP3 audio for free in seconds. No software, no sign-up — the best YouTube to MP3 converter online.',
+        h1: 'YouTube to MP3 Converter',
+        canonical: 'https://doomsdaysnap.online/youtube-to-mp3',
+        keywords: 'youtube to mp3, youtube mp3 converter free, convert youtube to mp3, youtube audio download',
+        icon: 'fa-youtube', color: 'text-red-500', border: 'border-t-red-500/40', bg: 'bg-red-500/10',
+        intro: 'Extract high-quality MP3 audio from any YouTube video — free, instant, no registration required.',
+        features: [
+            { icon: 'fa-music', title: 'High-Quality MP3', desc: 'Get audio at up to 320kbps — the highest quality available from the YouTube source stream.' },
+            { icon: 'fa-bolt', title: 'Instant Conversion', desc: 'No waiting in queues. Your YouTube MP3 is ready within seconds of pasting the link.' },
+            { icon: 'fa-infinity', title: 'Unlimited & Free', desc: 'No daily download limits, no subscriptions, no credit card. Completely free forever.' },
+            { icon: 'fa-mobile', title: 'Works on All Devices', desc: 'Converts on Android, iPhone, Windows, Mac and Linux — any browser, any platform.' }
+        ],
+        faqs: [
+            { q: "What bitrate is the MP3?", a: "We extract audio at the highest bitrate available from YouTube, typically 128–320kbps depending on the source." },
+            { q: "Can I convert YouTube Shorts to MP3?", a: "Yes, just paste the Shorts URL and select the Audio/MP3 option." },
+            { q: "Is there a video length limit?", a: "No limit — Doomsdaysnap handles videos of any length from Shorts to full-length concerts." },
+            { q: "Does it work on iPhone?", a: "Yes, Safari on iOS supports direct MP3 downloads which save to your Files app." },
+            { q: "Can I convert playlists?", a: "Currently individual videos are supported. Paste each URL separately." },
+            { q: "Is it completely free?", a: "100% free, no registration, no watermarks, no hidden fees." }
+        ]
+    },
+    'shorts-downloader': {
+        title: 'YouTube Shorts Downloader — Save Shorts in HD Free | Doomsdaysnap',
+        desc: 'Download YouTube Shorts in HD quality for free. Save any Short to your phone or PC instantly without any app.',
+        h1: 'YouTube Shorts Downloader',
+        canonical: 'https://doomsdaysnap.online/shorts-downloader',
+        keywords: 'youtube shorts downloader, save youtube shorts, download shorts hd, shorts download free 2026',
+        icon: 'fa-youtube', color: 'text-red-500', border: 'border-t-red-500/40', bg: 'bg-red-500/10',
+        intro: 'Download any YouTube Short in full HD quality instantly — free, no watermark, no app required.',
+        features: [
+            { icon: 'fa-mobile-screen', title: 'Vertical HD Quality', desc: 'Download Shorts in their native 1080×1920 vertical format — exactly as they appear on YouTube.' },
+            { icon: 'fa-bolt', title: 'Instant Processing', desc: 'Our engine processes YouTube Shorts URLs in under 3 seconds on average.' },
+            { icon: 'fa-music', title: 'Audio Extraction', desc: 'Choose to download the Short as MP3 audio if you only need the soundtrack.' },
+            { icon: 'fa-check-circle', title: 'No Watermark', desc: 'Clean, watermark-free download — the original video file from YouTube servers.' }
+        ],
+        faqs: [
+            { q: "How do I get a YouTube Short URL?", a: "Open the Short on YouTube and copy the URL from your browser — it looks like youtube.com/shorts/XXXXXXXX." },
+            { q: "What resolution are YouTube Shorts downloads?", a: "Most Shorts are available in 1080p (Full HD) vertical format." },
+            { q: "Can I save YouTube Shorts on iPhone?", a: "Yes! Paste the Shorts URL in Safari on Doomsdaysnap and download directly to your Files app." },
+            { q: "Is downloading Shorts free?", a: "Yes, completely free with no limits on how many Shorts you download." },
+            { q: "Can I get a Shorts MP3?", a: "Yes, select the Audio option from the format list to extract just the audio." },
+            { q: "Do I need an account?", a: "No account or sign-up required. Just paste and download." }
+        ]
+    },
+    'reels-downloader': {
+        title: 'Instagram Reels Downloader — Save Reels in HD Free | Doomsdaysnap',
+        desc: 'Download Instagram Reels in HD quality for free. No Instagram account needed — works on Android, iPhone and PC.',
+        h1: 'Instagram Reels Downloader',
+        canonical: 'https://doomsdaysnap.online/reels-downloader',
+        keywords: 'instagram reels downloader, save instagram reels, download reels hd free, instagram reel saver 2026',
+        icon: 'fa-instagram', color: 'text-pink-500', border: 'border-t-pink-500/40', bg: 'bg-pink-500/10',
+        intro: 'Save any public Instagram Reel to your device in full HD — completely free, no login, no watermark.',
+        features: [
+            { icon: 'fa-film', title: 'Full HD Quality', desc: 'Download Reels in their original 1080p HD quality — exactly as uploaded by the creator.' },
+            { icon: 'fa-lock-open', title: 'No Login Needed', desc: 'No Instagram account required. Simply paste the Reel link and download.' },
+            { icon: 'fa-droplet-slash', title: 'No Watermark', desc: 'Clean video with no Instagram branding or watermarks overlaid.' },
+            { icon: 'fa-globe', title: 'Cross-Platform', desc: 'Works seamlessly on Android, iPhone, Mac, Windows and Linux browsers.' }
+        ],
+        faqs: [
+            { q: "How do I copy an Instagram Reel link?", a: "Tap the three-dot menu (⋯) on the Reel and select 'Copy Link'." },
+            { q: "Can I download private Reels?", a: "No, only publicly accessible Reels can be downloaded." },
+            { q: "Does it work on Android?", a: "Yes, open Doomsdaysnap in Chrome on Android, paste the link and tap Download." },
+            { q: "What about IGTV and Stories?", a: "Yes, IGTV and public Stories are also supported through Doomsdaysnap." },
+            { q: "Is it safe to use?", a: "Yes — we access only the public URL and never ask for your Instagram credentials." },
+            { q: "Is it free?", a: "Completely free. No subscription, no sign-up, no limits." }
+        ]
+    }
+};
+
 const PLATFORM_ROUTES = Object.keys(PLATFORM_SEO_DATA).map(key => `/${key}`);
 
 PLATFORM_ROUTES.forEach(route => {
@@ -909,6 +1392,387 @@ app.get('/robots.txt', (_req, res) => {
     const base = process.env.SITE_URL || 'https://doomsdaysnap.online';
     res.header('Content-Type', 'text/plain');
     res.send(`User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: ${base}/sitemap.xml`);
+});
+
+// ─── Blog Routes ─────────────────────────────────────────────────────────────
+function buildBlogLayout(title, desc, canonical, bodyHtml) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title}</title>
+<meta name="description" content="${desc}">
+<link rel="canonical" href="${canonical}">
+<meta property="og:title" content="${title}">
+<meta property="og:description" content="${desc}">
+<meta property="og:url" content="${canonical}">
+<meta property="og:type" content="article">
+<meta property="og:image" content="https://doomsdaysnap.online/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${title}">
+<meta name="twitter:description" content="${desc}">
+<link rel="icon" type="image/png" href="/favicon.png?v=4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+<style>
+  html,body{background:#0f0f0f;color:#fff;font-family:'Inter',sans-serif;overflow-x:hidden}
+  .glass{background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08)}
+  .gradient-text{background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .nav-glass{background:rgba(10,10,15,0.8);backdrop-filter:blur(25px);border-bottom:1px solid rgba(255,255,255,0.06)}
+  a.nav-link{color:#9ca3af;transition:color .2s}a.nav-link:hover{color:#fff}
+  .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  code{background:rgba(168,85,247,.15);color:#c084fc;padding:2px 6px;border-radius:4px;font-size:.88em}
+  a{color:#a855f7;text-decoration:none}a:hover{text-decoration:underline}
+</style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z5XE5YM46M"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-Z5XE5YM46M');</script>
+</head>
+<body class="dark">
+<nav class="nav-glass fixed top-0 left-0 right-0 z-50">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <a href="/" class="font-extrabold text-xl text-white tracking-tight">Doomsday<span class="gradient-text">snap</span></a>
+    <div class="flex items-center gap-6 text-sm">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/youtube-downloader" class="nav-link hidden sm:inline">YouTube</a>
+      <a href="/tiktok-downloader" class="nav-link hidden sm:inline">TikTok</a>
+      <a href="/blog" class="nav-link font-semibold text-purple-400">Blog</a>
+    </div>
+  </div>
+</nav>
+<main class="pt-24 pb-16 px-4">${bodyHtml}</main>
+<footer class="border-t border-white/5 py-10 text-center">
+  <div class="max-w-4xl mx-auto px-4">
+    <a href="/" class="font-extrabold text-lg text-white">Doomsday<span class="gradient-text">snap</span></a>
+    <p class="text-gray-600 text-sm mt-2">Free video downloader for YouTube, TikTok, Instagram, Facebook, Twitter &amp; Snapchat.</p>
+    <div class="flex justify-center gap-6 mt-4 text-sm text-gray-600">
+      <a href="/privacy" class="hover:text-gray-400 transition-colors">Privacy</a>
+      <a href="/tos" class="hover:text-gray-400 transition-colors">Terms</a>
+      <a href="/blog" class="hover:text-gray-400 transition-colors">Blog</a>
+    </div>
+  </div>
+</footer>
+</body></html>`;
+}
+
+app.get('/blog', (_req, res) => {
+    const base = 'https://doomsdaysnap.online';
+    const categoryColors = { YouTube: 'bg-red-500/20 text-red-400', TikTok: 'bg-[#25F4EE]/20 text-[#25F4EE]', Instagram: 'bg-pink-500/20 text-pink-400', Facebook: 'bg-blue-500/20 text-blue-400', 'Twitter/X': 'bg-gray-500/20 text-gray-300', Guide: 'bg-purple-500/20 text-purple-400' };
+
+    const articleSchema = {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "name": "Doomsdaysnap Blog",
+        "url": `${base}/blog`,
+        "description": "Tips, guides and tutorials for downloading videos from YouTube, TikTok, Instagram and more.",
+        "blogPost": BLOG_POSTS.map(p => ({
+            "@type": "BlogPosting",
+            "headline": p.title,
+            "description": p.desc,
+            "datePublished": p.date,
+            "url": `${base}/blog/${p.slug}`
+        }))
+    };
+
+    const cards = BLOG_POSTS.map(p => {
+        const catColor = categoryColors[p.category] || 'bg-purple-500/20 text-purple-400';
+        return `
+        <article class="glass rounded-2xl overflow-hidden hover:border-purple-500/30 transition-all duration-300 flex flex-col">
+            <div class="p-6 flex-1 flex flex-col">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="tag ${catColor}">${p.category}</span>
+                    <span class="text-gray-600 text-xs">${p.readTime}</span>
+                </div>
+                <h2 class="text-lg font-bold text-white mb-3 leading-snug flex-1">
+                    <a href="/blog/${p.slug}" class="hover:text-purple-400 transition-colors" style="color:inherit;text-decoration:none">${p.title}</a>
+                </h2>
+                <p class="text-gray-500 text-sm leading-relaxed mb-4">${p.desc}</p>
+                <div class="flex items-center justify-between mt-auto pt-3 border-t border-white/5">
+                    <span class="text-gray-600 text-xs">${new Date(p.date).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}</span>
+                    <a href="/blog/${p.slug}" class="text-purple-400 text-sm font-semibold hover:text-purple-300 transition-colors flex items-center gap-1.5" style="text-decoration:none">
+                        Read <i class="fa-solid fa-arrow-right text-xs"></i>
+                    </a>
+                </div>
+            </div>
+        </article>`;
+    }).join('');
+
+    const body = `
+    <script type="application/ld+json">${JSON.stringify(articleSchema)}</script>
+    <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-12">
+            <span class="inline-block px-4 py-1.5 rounded-full bg-purple-500/15 text-purple-400 text-sm font-semibold mb-4">Blog & Guides</span>
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-white mb-4">Video Download <span class="gradient-text">Guides</span></h1>
+            <p class="text-gray-400 max-w-xl mx-auto">Expert tutorials on downloading videos from YouTube, TikTok, Instagram, Facebook, Twitter/X and Snapchat.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">${cards}</div>
+        <div class="glass rounded-2xl p-8 text-center">
+            <h2 class="text-2xl font-bold text-white mb-3">Ready to Download?</h2>
+            <p class="text-gray-400 mb-6 max-w-md mx-auto">Try Doomsdaysnap — the fastest free video downloader for 7 platforms.</p>
+            <a href="/" class="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-8 py-3 rounded-xl hover:opacity-90 transition-opacity" style="text-decoration:none">
+                <i class="fa-solid fa-download"></i> Download a Video Free
+            </a>
+        </div>
+    </div>`;
+
+    res.send(buildBlogLayout(
+        'Video Download Guides & Tutorials | Doomsdaysnap Blog',
+        'Expert guides on how to download videos from YouTube, TikTok, Instagram, Facebook, Twitter and Snapchat for free.',
+        `${base}/blog`,
+        body
+    ));
+});
+
+app.get('/blog/:slug', (req, res) => {
+    const base = 'https://doomsdaysnap.online';
+    const post = BLOG_POSTS.find(p => p.slug === req.params.slug);
+    if (!post) return res.status(404).redirect('/blog');
+
+    const articleSchema = {
+        "@context": "https://schema.org",
+        "@type": "BlogPosting",
+        "headline": post.title,
+        "description": post.desc,
+        "datePublished": post.date,
+        "dateModified": post.date,
+        "author": { "@type": "Organization", "name": "Doomsdaysnap", "url": base },
+        "publisher": { "@type": "Organization", "name": "Doomsdaysnap", "url": base, "logo": { "@type": "ImageObject", "url": `${base}/og-image.png` } },
+        "url": `${base}/blog/${post.slug}`,
+        "mainEntityOfPage": { "@type": "WebPage", "@id": `${base}/blog/${post.slug}` },
+        "image": `${base}/og-image.png`,
+        "keywords": post.keywords
+    };
+
+    const breadcrumbSchema = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": `${base}/` },
+            { "@type": "ListItem", "position": 2, "name": "Blog", "item": `${base}/blog` },
+            { "@type": "ListItem", "position": 3, "name": post.title, "item": `${base}/blog/${post.slug}` }
+        ]
+    };
+
+    const otherPosts = BLOG_POSTS.filter(p => p.slug !== post.slug).slice(0, 3).map(p => `
+        <a href="/blog/${p.slug}" class="glass rounded-xl p-4 flex flex-col gap-2 hover:border-purple-500/30 transition-all" style="text-decoration:none">
+            <span class="text-xs text-purple-400 font-semibold uppercase">${p.category}</span>
+            <span class="text-sm font-semibold text-white leading-snug">${p.title}</span>
+            <span class="text-xs text-gray-500">${p.readTime}</span>
+        </a>`).join('');
+
+    const body = `
+    <script type="application/ld+json">${JSON.stringify(articleSchema)}</script>
+    <script type="application/ld+json">${JSON.stringify(breadcrumbSchema)}</script>
+    <div class="max-w-4xl mx-auto">
+        <nav class="flex items-center gap-2 text-sm text-gray-600 mb-8">
+            <a href="/" class="hover:text-gray-400 transition-colors" style="text-decoration:none">Home</a>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+            <a href="/blog" class="hover:text-gray-400 transition-colors" style="text-decoration:none">Blog</a>
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+            <span class="text-gray-400 truncate max-w-xs">${post.title}</span>
+        </nav>
+        <header class="mb-10">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="tag bg-purple-500/20 text-purple-400">${post.category}</span>
+                <span class="text-gray-600 text-sm">${post.readTime}</span>
+                <span class="text-gray-600 text-sm">${new Date(post.date).toLocaleDateString('en-US', {year:'numeric',month:'long',day:'numeric'})}</span>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-white leading-tight mb-4">${post.title}</h1>
+            <p class="text-lg text-gray-400">${post.desc}</p>
+        </header>
+        <div class="glass rounded-2xl p-4 sm:p-6 mb-8">
+            <div class="flex items-center gap-3 mb-3">
+                <i class="fa-solid fa-download text-purple-400"></i>
+                <span class="text-white font-semibold">Try Doomsdaysnap Now</span>
+            </div>
+            <p class="text-gray-400 text-sm mb-3">Download videos from YouTube, TikTok, Instagram and more — free, instant, no sign-up.</p>
+            <a href="/" class="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold px-5 py-2.5 rounded-xl text-sm hover:opacity-90 transition-opacity" style="text-decoration:none">
+                <i class="fa-solid fa-bolt"></i> Start Downloading Free
+            </a>
+        </div>
+        <article class="prose max-w-none">${post.content}</article>
+        <div class="mt-12 pt-8 border-t border-white/10">
+            <h2 class="text-xl font-bold text-white mb-6">More Guides</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">${otherPosts}</div>
+        </div>
+    </div>`;
+
+    res.send(buildBlogLayout(post.title, post.desc, `${base}/blog/${post.slug}`, body));
+});
+
+// ─── Additional SEO Landing Pages ─────────────────────────────────────────────
+Object.entries(ADDITIONAL_SEO_DATA).forEach(([slug, seo]) => {
+    app.get(`/${slug}`, (_req, res) => {
+        const base = 'https://doomsdaysnap.online';
+
+        const faqSchema = {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": seo.faqs.map(f => ({
+                "@type": "Question",
+                "name": f.q,
+                "acceptedAnswer": { "@type": "Answer", "text": f.a }
+            }))
+        };
+        const softwareSchema = {
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": seo.h1,
+            "operatingSystem": "All",
+            "applicationCategory": "MultimediaApplication",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "2150" }
+        };
+        const breadcrumbSchema = {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                { "@type": "ListItem", "position": 1, "name": "Home", "item": `${base}/` },
+                { "@type": "ListItem", "position": 2, "name": seo.h1, "item": seo.canonical }
+            ]
+        };
+
+        const featuresHtml = seo.features.map(f => `
+            <div class="glass rounded-2xl p-6 hover:border-purple-500/20 transition-all">
+                <div class="w-11 h-11 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4">
+                    <i class="fa-solid ${f.icon} text-xl text-purple-400"></i>
+                </div>
+                <h3 class="text-white font-bold mb-2">${f.title}</h3>
+                <p class="text-gray-500 text-sm leading-relaxed">${f.desc}</p>
+            </div>`).join('');
+
+        const faqHtml = seo.faqs.map(f => `
+            <div class="glass rounded-xl overflow-hidden">
+                <details class="group">
+                    <summary class="px-6 py-4 font-semibold text-gray-200 cursor-pointer list-none flex justify-between items-center">
+                        ${f.q}
+                        <i class="fa-solid fa-chevron-down text-gray-500 text-sm flex-shrink-0 transition-transform group-open:rotate-180"></i>
+                    </summary>
+                    <div class="px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-white/5 pt-4">${f.a}</div>
+                </details>
+            </div>`).join('');
+
+        const relatedTools = Object.entries(PLATFORM_SEO_DATA).slice(0, 4).map(([key, p]) => `
+            <a href="/${key}" class="glass rounded-xl p-4 hover:border-purple-500/20 transition-all block" style="text-decoration:none">
+                <i class="fa-brands ${p.icon} text-lg ${p.color} mb-2 block"></i>
+                <span class="text-sm font-semibold text-white">${key.split('-')[0].charAt(0).toUpperCase() + key.split('-')[0].slice(1)}</span>
+                <span class="text-xs text-gray-500 block mt-1">Downloader</span>
+            </a>`).join('');
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${seo.title}</title>
+<meta name="description" content="${seo.desc}">
+<meta name="keywords" content="${seo.keywords}">
+<link rel="canonical" href="${seo.canonical}">
+<link rel="icon" type="image/png" href="/favicon.png?v=4">
+<meta property="og:title" content="${seo.title}">
+<meta property="og:description" content="${seo.desc}">
+<meta property="og:url" content="${seo.canonical}">
+<meta property="og:type" content="website">
+<meta property="og:image" content="${base}/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${seo.title}">
+<meta name="twitter:description" content="${seo.desc}">
+<script type="application/ld+json">${JSON.stringify(faqSchema)}</script>
+<script type="application/ld+json">${JSON.stringify(softwareSchema)}</script>
+<script type="application/ld+json">${JSON.stringify(breadcrumbSchema)}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+<style>
+  html,body{background:#0f0f0f;color:#fff;font-family:'Inter',sans-serif;overflow-x:hidden}
+  .glass{background:rgba(255,255,255,0.04);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08)}
+  .gradient-text{background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .gradient-bg{background:linear-gradient(135deg,#a855f7,#ec4899)}
+  .nav-glass{background:rgba(10,10,15,0.8);backdrop-filter:blur(25px);border-bottom:1px solid rgba(255,255,255,0.06)}
+</style>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Z5XE5YM46M"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-Z5XE5YM46M');</script>
+</head>
+<body class="dark">
+<nav class="nav-glass fixed top-0 left-0 right-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+    <a href="/" class="font-extrabold text-xl text-white tracking-tight">Doomsday<span class="gradient-text">snap</span></a>
+    <div class="flex items-center gap-5 text-sm">
+      <a href="/" class="text-gray-400 hover:text-white transition-colors">Home</a>
+      <a href="/blog" class="text-gray-400 hover:text-white transition-colors">Blog</a>
+      <a href="/" class="gradient-bg text-white font-semibold px-4 py-2 rounded-xl text-sm hover:opacity-90 transition-opacity">Download Free</a>
+    </div>
+  </div>
+</nav>
+<main class="pt-24 pb-16">
+    <section class="max-w-4xl mx-auto px-4 text-center pt-8 pb-12">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass text-xs text-gray-300 mb-6">
+            <i class="fa-brands ${seo.icon} ${seo.color}"></i> Free · No Sign-Up · Unlimited
+        </div>
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-4 leading-tight">${seo.h1}</h1>
+        <p class="text-lg text-gray-400 mb-8 max-w-xl mx-auto">${seo.intro}</p>
+        <div class="relative max-w-2xl mx-auto">
+            <div class="glass rounded-2xl p-3 flex flex-col sm:flex-row gap-3 items-center">
+                <input id="urlInput" type="text" placeholder="Paste YouTube link here…" class="flex-1 bg-transparent border-none outline-none px-4 py-3 text-white placeholder-gray-600 text-sm w-full" autocomplete="off">
+                <a href="/" class="gradient-bg text-white font-bold px-6 py-3 rounded-xl text-sm whitespace-nowrap w-full sm:w-auto text-center hover:opacity-90 transition-opacity" style="text-decoration:none">Download Free</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-4 py-12">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold mb-3">Why Use Doomsdaysnap?</h2>
+            <p class="text-gray-400">Built for speed, quality and simplicity.</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">${featuresHtml}</div>
+    </section>
+
+    <section class="max-w-4xl mx-auto px-4 py-12">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold mb-3">How It Works</h2>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+            <div class="glass rounded-2xl p-6"><div class="text-3xl font-black text-purple-400 mb-3">1</div><h3 class="font-bold text-white mb-2">Copy the URL</h3><p class="text-gray-500 text-sm">Copy the video link from YouTube or any supported platform.</p></div>
+            <div class="glass rounded-2xl p-6"><div class="text-3xl font-black text-purple-400 mb-3">2</div><h3 class="font-bold text-white mb-2">Paste on Doomsdaysnap</h3><p class="text-gray-500 text-sm">Go to doomsdaysnap.online and paste the URL in the input box.</p></div>
+            <div class="glass rounded-2xl p-6"><div class="text-3xl font-black text-purple-400 mb-3">3</div><h3 class="font-bold text-white mb-2">Download</h3><p class="text-gray-500 text-sm">Select your preferred quality or format and click Download.</p></div>
+        </div>
+    </section>
+
+    <section class="max-w-3xl mx-auto px-4 py-12">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold mb-3">Frequently Asked Questions</h2>
+        </div>
+        <div class="space-y-3">${faqHtml}</div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-4 py-12 border-t border-white/5">
+        <div class="text-center mb-8">
+            <h2 class="text-2xl font-bold mb-2">More Downloader Tools</h2>
+            <p class="text-gray-400 text-sm">Download from every major social media platform.</p>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">${relatedTools}</div>
+    </section>
+</main>
+<footer class="border-t border-white/5 py-10 text-center">
+  <div class="max-w-4xl mx-auto px-4">
+    <a href="/" class="font-extrabold text-lg text-white">Doomsday<span class="gradient-text">snap</span></a>
+    <p class="text-gray-600 text-sm mt-2">Free video downloader for YouTube, TikTok, Instagram, Facebook, Twitter &amp; Snapchat.</p>
+    <div class="flex justify-center gap-6 mt-4 text-sm text-gray-600">
+      <a href="/privacy" class="hover:text-gray-400 transition-colors">Privacy</a>
+      <a href="/tos" class="hover:text-gray-400 transition-colors">Terms</a>
+      <a href="/blog" class="hover:text-gray-400 transition-colors">Blog</a>
+    </div>
+  </div>
+</footer>
+</body></html>`;
+        res.send(html);
+    });
 });
 
 // ─── Background CDN pre-fetch ─────────────────────────────────────────────────
@@ -1361,7 +2225,7 @@ app.get('/api/download', rateLimit, async (req, res) => {
 // ─── TikTok Original Downloader Page ─────────────────────────────────────────
 const FLASK_PORT = 5000;
 
-app.get('/tiktok-downloader', (req, res) => {
+app.get('/tiktok-downloader', (_req, res) => {
     res.send(`<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -1571,29 +2435,41 @@ app.get('/social/proxy', (req, res) => {
 });
 
 // ─── Sitemap & SEO Infrastructure ──────────────────────────────────────────────
-app.get('/sitemap.xml', (req, res) => {
+app.get('/sitemap.xml', (_req, res) => {
     const baseUrl = 'https://doomsdaysnap.online';
-    const platforms = Object.keys(PLATFORM_SEO_DATA);
-    
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url>
-        <loc>${baseUrl}/</loc>
-        <changefreq>daily</changefreq>
-        <priority>1.0</priority>
-    </url>`;
+    const now = new Date().toISOString().split('T')[0];
 
-    platforms.forEach(p => {
-        xml += `
-    <url>
-        <loc>${baseUrl}/${p}</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>`;
-    });
+    const staticPages = [
+        { loc: '/',          priority: '1.0', changefreq: 'daily'   },
+        { loc: '/blog',      priority: '0.9', changefreq: 'weekly'  },
+        { loc: '/privacy',   priority: '0.3', changefreq: 'monthly' },
+        { loc: '/tos',       priority: '0.3', changefreq: 'monthly' },
+    ];
 
-    xml += `\n</urlset>`;
-    
+    const platformPages = Object.keys(PLATFORM_SEO_DATA).map(p => ({
+        loc: `/${p}`, priority: '0.9', changefreq: 'weekly'
+    }));
+
+    const additionalPages = Object.keys(ADDITIONAL_SEO_DATA).map(p => ({
+        loc: `/${p}`, priority: '0.8', changefreq: 'weekly'
+    }));
+
+    const blogPages = BLOG_POSTS.map(p => ({
+        loc: `/blog/${p.slug}`, priority: '0.7', changefreq: 'monthly', lastmod: p.date
+    }));
+
+    const allPages = [...staticPages, ...platformPages, ...additionalPages, ...blogPages];
+
+    const urlEntries = allPages.map(p => `
+    <url>
+        <loc>${baseUrl}${p.loc}</loc>
+        <lastmod>${p.lastmod || now}</lastmod>
+        <changefreq>${p.changefreq}</changefreq>
+        <priority>${p.priority}</priority>
+    </url>`).join('');
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urlEntries}\n</urlset>`;
+
     res.header('Content-Type', 'application/xml');
     res.send(xml);
 });
