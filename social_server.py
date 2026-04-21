@@ -34,6 +34,7 @@ def fetch_facebook(url):
     import subprocess
     import json
     import os
+    import sys
 
     try:
         # Base directory of the project
@@ -47,7 +48,7 @@ def fetch_facebook(url):
         
         # Command to get metadata in JSON format
         cmd = [
-            'python', '-m', 'yt_dlp',
+            sys.executable, '-m', 'yt_dlp',
             '--dump-single-json',
             '--no-playlist',
             '--quiet',

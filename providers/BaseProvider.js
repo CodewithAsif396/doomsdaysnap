@@ -8,7 +8,18 @@ const https      = require('https');
 const isWin = process.platform === 'win32';
 
 // Robust yt-dlp detection (align with server.js)
-const YTDLP_BIN = 'python'; // Always use python module for reliability in 2026
+function getPythonCommand() {
+    if (process.platform === 'win32') return 'python';
+    try {
+        const { execSync } = require('child_process');
+        execSync('python3 --version', { stdio: 'ignore' });
+        return 'python3';
+    } catch {
+        return 'python';
+    }
+}
+const YTDLP_BIN = getPythonCommand(); // Auto-detect python vs python3
+
 
 
 // Cookies file detection — check multiple possible names (browser export adds " (1)" suffix)

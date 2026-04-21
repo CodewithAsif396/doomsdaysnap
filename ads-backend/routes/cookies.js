@@ -55,7 +55,7 @@ router.post('/upload', requireAuth, upload.single('cookies'), (req, res) => {
     let reason = 'Not checked';
     try {
         const result = execSync(
-            `python cookie_manager.py --json`,
+            `${PYTHON} cookie_manager.py --json`,
             { cwd: PROJECT_DIR, timeout: 30000, encoding: 'utf8' }
         );
         const data = JSON.parse(result);

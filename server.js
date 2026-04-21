@@ -79,7 +79,17 @@ const PORT = process.env.PORT || 3000;
 const isWin = process.platform === 'win32';
 
 // Robust yt-dlp detection
-const YTDLP = 'python'; // Always use python module for reliability in 2026
+function getPythonCommand() {
+    if (process.platform === 'win32') return 'python';
+    try {
+        const { execSync } = require('child_process');
+        execSync('python3 --version', { stdio: 'ignore' });
+        return 'python3';
+    } catch {
+        return 'python';
+    }
+}
+const YTDLP = getPythonCommand(); // Auto-detect python vs python3
 const YTDLP_IS_MODULE = true; 
 
 
