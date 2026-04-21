@@ -119,7 +119,8 @@ def get_all_status():
             "age_days": round(age, 1) if age < 900 else None,
             "valid": valid,
             "reason": reason,
-            "needs_update": needs_update
+            "needs_update": needs_update,
+            "debug_path": path # This will help us see where it's looking
         }
     return status
 
