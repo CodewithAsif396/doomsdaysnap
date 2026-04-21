@@ -248,16 +248,17 @@ async def download(url: str, height: Optional[str] = None, type: Optional[str] =
         media_type = "audio/mpeg" if is_audio else "video/mp4"
         ext = "mp3" if is_audio else "mp4"
 
-        print(f"[DOWNLOAD] Falling back to VPS stream for: {safe_title}")
+        print(f"[DOWNLOAD] Streaming started: {safe_title} | Audio={is_audio}")
         return StreamingResponse(
-            download_and_stream(url, fmt, safe_title, is_audio=is_audio),
+            download_and_stream(url, fmt, safe_title, is_audio),
             media_type=media_type,
             headers={"Content-Disposition": f'attachment; filename="{safe_title}.{ext}"'}
         )
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[DOWNLOAD ERROR] {e}")
+        return {"error": str(e)}
 
 
 if __name__ == "__main__":
