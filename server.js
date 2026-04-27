@@ -66,7 +66,7 @@ const ffmpegPath = require('ffmpeg-static');
 
 
 // ── Provider imports — one file per platform ──────────────────────────────────
-const YouTubeProvider  = require('./providers/YouTubeProvider');
+// const YouTubeProvider  = require('./providers/YouTubeProvider');
 const TikTokProvider   = require('./providers/TikTokProvider');
 const InstagramProvider = require('./providers/InstagramProvider');
 const TwitterProvider  = require('./providers/TwitterProvider');
@@ -196,7 +196,7 @@ function validateUrl(url) {
 // YouTubeProvider and TikTokProvider have dedicated logic for their complex APIs.
 // ── Provider instances — one per platform ────────────────────────────────────
 const providers = {
-    youtube:   new YouTubeProvider(),
+    // youtube:   new YouTubeProvider(),
     tiktok:    new TikTokProvider(),
     instagram: new InstagramProvider(),
     twitter:   new TwitterProvider(),
@@ -1937,6 +1937,12 @@ app.get('/api/download', rateLimit, async (req, res) => {
         const pyUrl = `http://127.0.0.1:5002/download?url=${encodeURIComponent(safeUrl)}${type ? `&height=${type}` : ''}${fid ? `&fid=${encodeURIComponent(fid)}` : ''}`;
         
         const pyReq = http.get(pyUrl, (pyRes) => {
+            if (pyRes.statusCode === 302 || pyRes.statusCode === 307) {
+                const redirectUrl = pyRes.headers.location;
+                console.log(`[DOWNLOAD] Redirecting browser to: ${redirectUrl.slice(0, 50)}...`);
+                return res.redirect(redirectUrl);
+            }
+
             if (pyRes.statusCode !== 200) {
                 console.error('[YouTube Engine] Download error:', pyRes.statusCode);
                 return res.status(500).send('YouTube download failed.');
