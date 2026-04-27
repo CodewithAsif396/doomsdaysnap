@@ -85,8 +85,10 @@ async def get_info(url: str):
         if is_progressive:
             entry["url"] = f.get("url")
         else:
-            entry["video_url"] = f.get("url")
-            entry["audio_url"] = audio_url
+            # Provide proxy URLs for split streams to avoid 403
+            url_enc = info.get("webpage_url") or url
+            entry["video_url"] = f"/api/download?url={url_enc}&fid={f.get('fid')}"
+            entry["audio_url"] = f"/api/download?url={url_enc}&height=audio"
         formatted_formats.append(entry)
 
     return {

@@ -1443,7 +1443,7 @@
                         if (f.video_url && f.audio_url) {
                             html += buildFormatRow(f.height + 'p Premium Video', desc, 'video', color, null, badge, { vUrl: f.video_url, aUrl: f.audio_url });
                         } else {
-                            html += buildFormatRow(f.height + 'p Premium Video', desc, 'video', color, dlUrl, badge, null, data.provider === 'tiktok' || data.provider === 'youtube');
+                            html += buildFormatRow(f.height + 'p Premium Video', desc, 'video', color, dlUrl, badge, null, data.provider === 'tiktok');
                         }
                     });
                 } else {
