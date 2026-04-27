@@ -4,10 +4,9 @@ import yt_dlp
 import asyncio
 import os
 import tempfile
-import httpx
 from typing import Optional
 
-app = FastAPI(title="YouTube Engine V7 - Robust Mode")
+app = FastAPI(title="YouTube Engine V7 - Direct Redirect Mode")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -52,7 +51,6 @@ async def get_info(url: str):
         info = await asyncio.to_thread(extract)
     except Exception as e:
         err = str(e)
-        print(f"[INFO ERROR] {err}")
         if "Sign in" in err or "bot" in err.lower():
             raise HTTPException(status_code=403, detail="YouTube bot detection. Update cookies.")
         raise HTTPException(status_code=500, detail=err)
@@ -86,10 +84,8 @@ async def get_info(url: str):
         if is_progressive:
             entry["url"] = f.get("url")
         else:
-            # Provide proxy URLs for split streams to avoid 403
-            url_enc = info.get("webpage_url") or url
-            entry["video_url"] = f"/api/download?url={url_enc}&fid={f.get('fid')}"
-            entry["audio_url"] = f"/api/download?url={url_enc}&height=audio"
+            entry["video_url"] = f.get("url")
+            entry["audio_url"] = audio_url
         formatted_formats.append(entry)
 
     return {
@@ -103,101 +99,50 @@ async def get_info(url: str):
 @app.get("/download")
 async def download(url: str, height: Optional[str] = None, fid: Optional[str] = None):
     try:
-        # Normalize fid and height
-        if fid == "None" or not fid: fid = None
-        if height == "None" or not height: height = None
+        if fid == "None": fid = None
+        if height == "None": height = None
         
         is_audio = height == 'audio'
-        print(f"[DOWNLOAD] Request: {url} | Height: {height} | FID: {fid}")
         
-        # 1. Handle MP3 Conversion (Always Proxy/Stream)
+        # 1. Audio still needs server-side conversion to MP3
         if is_audio:
             async def stream_mp3():
-                try:
-                    with tempfile.TemporaryDirectory() as tmpdir:
-                        opts = get_ydl_opts({
-                            'format': 'bestaudio/best',
-                            'outtmpl': os.path.join(tmpdir, 'audio.%(ext)s'),
-                            'postprocessors': [{
-                                'key': 'FFmpegExtractAudio',
-                                'preferredcodec': 'mp3',
-                                'preferredquality': '192',
-                            }]
-                        })
-                        def do_dl():
-                            with yt_dlp.YoutubeDL(opts) as ydl: ydl.download([url])
-                        await asyncio.to_thread(do_dl)
-                        out_file = os.path.join(tmpdir, 'audio.mp3')
-                        if os.path.exists(out_file):
-                            with open(out_file, 'rb') as f:
-                                while chunk := f.read(1024*1024): yield chunk
-                        else:
-                            print("[DOWNLOAD ERROR] MP3 file not found after conversion")
-                except Exception as e:
-                    print(f"[DOWNLOAD ERROR] Audio stream failed: {e}")
-
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    opts = get_ydl_opts({
+                        'format': 'bestaudio/best',
+                        'outtmpl': os.path.join(tmpdir, 'audio.%(ext)s'),
+                        'postprocessors': [{
+                            'key': 'FFmpegExtractAudio',
+                            'preferredcodec': 'mp3',
+                            'preferredquality': '192',
+                        }]
+                    })
+                    def do_dl():
+                        with yt_dlp.YoutubeDL(opts) as ydl: ydl.download([url])
+                    await asyncio.to_thread(do_dl)
+                    out_file = os.path.join(tmpdir, 'audio.mp3')
+                    if os.path.exists(out_file):
+                        with open(out_file, 'rb') as f:
+                            while chunk := f.read(1024*1024): yield chunk
             return StreamingResponse(stream_mp3(), media_type="audio/mpeg", headers={"Content-Disposition": 'attachment; filename="audio.mp3"'})
 
-        # 2. Handle Video (Proxy to avoid 403)
-        # Use robust format selection
-        if fid:
-            fmt = fid
-        elif height:
-            # Fallback chain for specific height
-            fmt = f"bestvideo[height<={height}]+bestaudio/best[height<={height}]/best[height<={height}]/best"
-        else:
-            fmt = "bestvideo+bestaudio/best"
-            
-        print(f"[DOWNLOAD] Using format: {fmt}")
-        
-        def get_video_info():
+        # 2. Video - Direct Redirect to CDN as requested
+        fmt = fid if fid else (f'bestvideo[height<={height}]+bestaudio/best' if height else 'best')
+        def get_url():
             with yt_dlp.YoutubeDL(get_ydl_opts({'format': fmt})) as ydl:
                 info = ydl.extract_info(url, download=False)
-                # Handle cases where bestvideo+bestaudio is chosen
                 if 'requested_formats' in info:
-                    # If it's a split stream, we can only return one URL here for the proxy
-                    # yt-dlp doesn't merge during 'download=False' easily without a pipe
-                    # For now, return the best available single stream if it fails
-                    return info['requested_formats'][0].get('url'), info.get('title', 'video')
-                return info.get('url'), info.get('title', 'video')
-
-        try:
-            direct_url, title = await asyncio.to_thread(get_video_info)
-            if not direct_url: 
-                print("[DOWNLOAD ERROR] No direct URL found for format")
-                raise Exception("No direct URL found")
-        except Exception as e:
-            print(f"[DOWNLOAD ERROR] Extraction failed: {e}")
-            # Final fallback to absolute best
-            def fallback():
-                with yt_dlp.YoutubeDL(get_ydl_opts({'format': 'best'})) as ydl:
-                    return ydl.extract_info(url, download=False).get('url')
-            direct_url = await asyncio.to_thread(fallback)
-            title = "video"
-
-        # Proxy the stream to avoid 403 Forbidden
-        async def proxy_stream():
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Referer': 'https://www.youtube.com/'
-            }
-            try:
-                async with httpx.AsyncClient(timeout=None) as client:
-                    async with client.stream("GET", direct_url, headers=headers, follow_redirects=True) as response:
-                        if response.status_code != 200:
-                            print(f"[DOWNLOAD ERROR] CDN status {response.status_code}")
-                        async for chunk in response.aiter_bytes(chunk_size=1024*1024):
-                            yield chunk
-            except Exception as e:
-                print(f"[DOWNLOAD ERROR] Proxy streaming failed: {e}")
-
-        safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).strip()
-        return StreamingResponse(proxy_stream(), media_type="video/mp4", headers={
-            "Content-Disposition": f'attachment; filename="{safe_title}.mp4"'
-        })
+                    return info['requested_formats'][0].get('url')
+                return info.get('url')
+        
+        direct_url = await asyncio.to_thread(get_url)
+        if direct_url:
+            return RedirectResponse(url=direct_url)
+        
+        raise HTTPException(status_code=404, detail="Format not found")
         
     except Exception as e:
-        print(f"[DOWNLOAD ERROR] Main handler exception: {e}")
+        print(f"[DOWNLOAD ERROR] {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
